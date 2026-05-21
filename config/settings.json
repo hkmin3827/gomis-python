@@ -1,0 +1,34 @@
+{
+  "camera": {
+    "index": 0,
+    "width": 640,
+    "height": 480,
+    "fps": 30
+  },
+  "gesture": {
+    "sensitivity": 0.5,
+    "cursor_smoothing": 0.7,
+    "click_threshold": 0.04,
+    "scroll_speed": 5
+  },
+  "whisper": {
+    "model": "base",
+    "language": "ko"
+  },
+  "ui": {
+    "show_landmarks": true,
+    "show_fps": true,
+    "show_gesture_label": true,
+    "preview_window_size": [640, 480]
+  },
+  "features": {
+    "cursor": true,
+    "click": true,
+    "scroll": true,
+    "volume": true,
+    "window_switch": true,
+    "claude_voice": false,
+    "brightness": false,
+    "media_control": false
+  }
+}

@@ -1,0 +1,35 @@
+# Javis Motion Control — 의존성 패키지
+# 설치: pip install -r requirements.txt
+
+# 모션 인식
+mediapipe>=0.10.0
+opencv-python>=4.8.0
+
+# 데스크톱 제어
+pyautogui>=0.9.54
+pynput>=1.7.6
+pywin32>=306
+pycaw>=20230407
+comtypes>=1.2.0
+
+# 음성 인식 (Whisper 로컬)
+openai-whisper>=20231117
+# Whisper 의존성
+torch>=2.0.0
+torchaudio>=2.0.0
+ffmpeg-python>=0.2.0
+
+# Claude 연동
+anthropic>=0.25.0
+
+# UI
+PyQt5>=5.15.10
+pystray>=0.19.5
+Pillow>=10.0.0
+
+# 부가 기능
+screen-brightness-control>=0.22.1
+
+# 공통
+numpy>=1.24.0
+python-dotenv>=1.0.0
