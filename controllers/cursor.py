@@ -8,8 +8,11 @@ CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
 
-# 웹캠 가장자리 제외 비율: 상하좌우 각 20% 는 데드존
-_MARGIN = 0.20
+# 웹캠 데드존 마진 — 상하좌우 동일 20%
+_MARGIN_LEFT   = 0.20
+_MARGIN_RIGHT  = 0.20
+_MARGIN_TOP    = 0.20
+_MARGIN_BOTTOM = 0.20
 
 
 class CursorController:
@@ -23,15 +26,15 @@ class CursorController:
     def move(self, landmarks):
         """
         INDEX_TIP 위치 → 스크린 좌표 매핑.
-        웹캠 [MARGIN, 1-MARGIN] 범위만 활성 영역으로 사용해
-        가장자리 손 인식 소실 문제를 완화.
+        방향별 비대칭 마진으로 아래쪽 도달 문제 해결.
         """
-        active = 1.0 - 2 * _MARGIN
         raw_x  = landmarks[INDEX_TIP].x
         raw_y  = landmarks[INDEX_TIP].y
         # X 축 반전: 웹캠은 거울상이므로 손 움직임과 커서 방향을 일치시킴
-        nx = max(0.0, min(1.0, 1.0 - (raw_x - _MARGIN) / active))
-        ny = max(0.0, min(1.0, (raw_y - _MARGIN) / active))
+        active_x = 1.0 - _MARGIN_LEFT - _MARGIN_RIGHT
+        active_y = 1.0 - _MARGIN_TOP  - _MARGIN_BOTTOM
+        nx = max(0.0, min(1.0, 1.0 - (raw_x - _MARGIN_LEFT) / active_x))
+        ny = max(0.0, min(1.0, (raw_y - _MARGIN_TOP) / active_y))
 
         tx = nx * self._screen_w
         ty = ny * self._screen_h
