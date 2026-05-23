@@ -24,8 +24,6 @@ GESTURE_ZOOM_IN       = "zoom_in"
 GESTURE_ZOOM_OUT      = "zoom_out"
 GESTURE_VOLUME_UP     = "volume_up"
 GESTURE_VOLUME_DOWN   = "volume_down"
-GESTURE_WINDOW_RIGHT  = "window_right"
-GESTURE_WINDOW_LEFT   = "window_left"
 GESTURE_WINDOW_ALT_START_RIGHT = "window_alt_start_right"
 GESTURE_WINDOW_ALT_START_LEFT  = "window_alt_start_left"
 GESTURE_WINDOW_ALT_TAB         = "window_alt_tab"
@@ -316,9 +314,9 @@ class GestureEngine:
         return GESTURE_VOLUME_UP if side == "Left" else GESTURE_VOLUME_DOWN
 
     def detect_clap(self, hands: list) -> str | None:
-        """양손 박수 감지.
-        두 손 모두 오픈팜 + 손목 거리 < 0.35 → 박수.
-        홀수 번째 박수 → GESTURE_VOICE_START, 짝수 번째 → GESTURE_VOICE_END.
+        """양손 손날 맞대기 감지.
+        조건: 양손 모두 손날 자세 (측면 + 손가락 위) + 두 손목이 같은 높이 + 가까운 거리.
+        홀수 번째 → GESTURE_VOICE_START, 짝수 번째 → GESTURE_VOICE_END.
         """
         now = time.time()
 
@@ -329,20 +327,16 @@ class GestureEngine:
             return None
 
         h1, h2 = hands[0], hands[1]
-        # 양손 모두 오픈팜 + 정면도 >= 0.4 (손날/측면 오인식 방어)
-        both_open = (
-            _is_open_palm(h1.landmarks) and _palm_facing_ratio(h1.landmarks) >= 0.4 and
-            _is_open_palm(h2.landmarks) and _palm_facing_ratio(h2.landmarks) >= 0.4
-        )
+        both_blade = _is_blade_pose(h1.landmarks) and _is_blade_pose(h2.landmarks)
 
-        dx = h1.landmarks[WRIST].x - h2.landmarks[WRIST].x
-        dy = h1.landmarks[WRIST].y - h2.landmarks[WRIST].y
-        dist = (dx * dx + dy * dy) ** 0.5
+        w1, w2 = h1.landmarks[WRIST], h2.landmarks[WRIST]
+        x_dist = abs(w1.x - w2.x)   # 두 손목 x 거리 (가까울수록 맞댄 상태)
+        y_diff = abs(w1.y - w2.y)   # 두 손목 y 차이 (작을수록 일직선)
 
-        together = both_open and dist < 0.35
+        together = both_blade and x_dist < 0.30 and y_diff < 0.12
 
         if together and self._clap_state == "apart":
-            if now - self._clap_apart_time > 0.3:  # 연속 오인식 방지
+            if now - self._clap_apart_time > 0.3:
                 self._clap_state = "together"
                 self._clap_together_time = now
                 self._clap_count += 1
@@ -435,6 +429,19 @@ def _lm_dist(lm, a: int, b: int) -> float:
     dx = lm[a].x - lm[b].x
     dy = lm[a].y - lm[b].y
     return (dx*dx + dy*dy) ** 0.5
+
+def _is_blade_pose(lm) -> bool:
+    """손날 자세: 손이 측면(ratio < 0.35) + 손가락 모두 위를 향함 + 모두 펴짐(PIP 기준)."""
+    if _palm_facing_ratio(lm) >= 0.35:
+        return False
+    fingers_up_to_wrist = lm[MIDDLE_TIP].y < lm[WRIST].y
+    all_extended = (
+        lm[INDEX_TIP].y  < lm[INDEX_PIP].y  and
+        lm[MIDDLE_TIP].y < lm[MIDDLE_PIP].y and
+        lm[RING_TIP].y   < lm[RING_PIP].y   and
+        lm[PINKY_TIP].y  < lm[PINKY_PIP].y
+    )
+    return fingers_up_to_wrist and all_extended
 
 def _palm_facing_ratio(lm) -> float:
     """정면도 비율: INDEX_MCP~PINKY_MCP x너비 / 손바닥 기준값.

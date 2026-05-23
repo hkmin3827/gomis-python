@@ -11,6 +11,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# torch DLL을 Qt보다 먼저 초기화해야 WinError 1114 방지됨
+# Qt가 DLL 검색 경로를 변경하기 전에 c10.dll 등을 로드
+try:
+    import torch  # noqa: F401
+except Exception:
+    pass
+
 CONFIG_PATH = Path(__file__).parent / "config" / "settings.json"
 
 
@@ -28,17 +35,10 @@ def main():
     config   = load_config()
     features = config["features"]
 
-    # ── 코어 초기화 ──────────────────────────────────────────────
     from core import Camera, HandTracker
     from core.gesture_engine import (
         GestureEngine,
         GESTURE_CURSOR, GESTURE_CLICK, GESTURE_DOUBLE_CLICK,
-        GESTURE_DRAG_UP, GESTURE_DRAG_DOWN,
-        GESTURE_ZOOM_IN, GESTURE_ZOOM_OUT,
-        GESTURE_VOLUME_UP, GESTURE_VOLUME_DOWN,
-        GESTURE_WINDOW_LEFT, GESTURE_WINDOW_RIGHT,
-        GESTURE_WINDOW_ALT_START_RIGHT, GESTURE_WINDOW_ALT_START_LEFT,
-        GESTURE_WINDOW_ALT_TAB, GESTURE_WINDOW_ALT_END,
         GESTURE_VOICE_START, GESTURE_VOICE_END,
     )
     from controllers import (
@@ -63,21 +63,24 @@ def main():
 
     cam.open()
 
-    # ── 제스처 처리 (PreviewWindow 의 타이머가 호출) ─────────────
+    # PreviewWindow 의 타이머가 호출) 
     def run_frame():
         ok, frame = cam.read()
         if not ok:
             return None
 
-        h, w  = frame.shape[:2]
+        frame_h, w  = frame.shape[:2]
         hands = tracker.process_all(frame)          # 양손 모두 감지
+        both_hands = len(hands) >= 2
         hand  = hands[0] if hands else None
-        gesture = engine.detect(hand, w, h)
 
-        if hand:
-            tracker.draw(frame, hand.landmarks)
+        # 양손이면 단일 손 제스처 엔진에 None 넘겨 상태 리셋
+        gesture = engine.detect(None if both_hands else hand, w, frame_h)
 
-        # ── 박수 감지 (음성 타이핑) ─────────────────────────────
+        for h in hands:
+            tracker.draw(frame, h.landmarks)
+
+        # 박수 감지 (음성 타이핑) — 양손일 때만
         clap = engine.detect_clap(hands)
         if clap == GESTURE_VOICE_START and voice_state["status"] == "idle":
             voice_state["status"] = "recording"
@@ -102,33 +105,33 @@ def main():
 
             threading.Thread(target=_do_transcribe, daemon=True).start()
 
-        # ── 단일 손 제스처 처리 ────────────────────────────────
-        if features.get("cursor") and gesture == GESTURE_CURSOR and hand:
-            cursor.move(hand.landmarks)
+        # 단일 손 제스처 — 양손이 잡히면 발화 차단
+        if not both_hands:
+            if features.get("cursor") and gesture == GESTURE_CURSOR and hand:
+                cursor.move(hand.landmarks)
 
-        if features.get("click"):
-            if gesture == GESTURE_CLICK:
-                cursor.click()
-            elif gesture == GESTURE_DOUBLE_CLICK:
-                cursor.double_click()
+            if features.get("click"):
+                if gesture == GESTURE_CLICK:
+                    cursor.click()
+                elif gesture == GESTURE_DOUBLE_CLICK:
+                    cursor.double_click()
 
-        if features.get("scroll"):
-            scroll.handle(gesture)
+            if features.get("scroll"):
+                scroll.handle(gesture)
 
-        if features.get("volume"):
-            volume.handle(gesture)
+            if features.get("volume"):
+                volume.handle(gesture)
 
-        if features.get("window_switch"):
-            windows.handle(gesture)
+            if features.get("window_switch"):
+                windows.handle(gesture)
 
-        zoom.handle(gesture)
+            zoom.handle(gesture)
 
         handedness = hand.handedness if hand else None
-        # 음성 녹음 중일 때 gesture 이름에 표시
-        disp_gesture = f"🎤 {voice_state['status']}" if voice_state["status"] != "idle" else gesture
+        disp_gesture = f"[{len(hands)}H] 🎤 {voice_state['status']}" if voice_state["status"] != "idle" \
+                       else f"[{len(hands)}H] {gesture}"
         return frame, disp_gesture, engine.state, handedness
 
-    # ── UI 초기화 ────────────────────────────────────────────────
     from ui import PreviewWindow, TrayIcon
 
     preview = PreviewWindow(run_frame)
