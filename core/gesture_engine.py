@@ -81,11 +81,11 @@ class GestureEngine:
         # 창 전환 — 스와이프 감지 (IDLE 세션당 1회 제한)
         self._last_window_time  = 0.0
         self._window_cooldown   = 1.0
-        self._window_once_fired = False  # 오픈팜 or 다른 제스처 전까지 재발화 차단
+        self._window_once_fired = False  # 쿨다운 전까지 재발화 차단
         self._pos_history: list[tuple[float, float]] = []  # (wrist_x, timestamp)
         self._swipe_win         = 0.5    # 추적 시간 윈도우(초)
-        self._swipe_dist        = 0.20   # 정규화 좌표 기준 최소 이동 거리
-        self._swipe_min_vel     = 0.40   # 정규화/초 기준 최소 속도
+        self._swipe_dist        = 0.30   # 웹캠 너비 30% 이동 필요
+        self._swipe_min_vel     = 0.20   # 정규화/초 기준 최소 속도 (완화)
 
         # 상태 진입 확정 (N 프레임 연속 포즈)
         self._pending_desire: str | None = None
@@ -105,6 +105,22 @@ class GestureEngine:
 
         lm   = hand.landmarks
         side = hand.handedness
+        now  = time.time()
+
+        # ── 손목 위치 이력 누적 (상태 무관) ──────────────────────
+        self._pos_history = [(x, t) for x, t in self._pos_history if now - t < self._swipe_win]
+        self._pos_history.append((lm[WRIST].x, now))
+
+        # 쿨다운 만료 시 재스와이프 허용
+        if self._window_once_fired and now - self._last_window_time >= self._window_cooldown:
+            self._window_once_fired = False
+            self._pos_history.clear()
+
+        # ── 창 전환: 오픈팜 + 수평 스와이프 (상태 무관) ──────────
+        if _is_open_palm(lm):
+            swipe = self._check_swipe(side)
+            if swipe != GESTURE_NONE:
+                return swipe
 
         # ── 클릭/더블클릭 ────────────────────────────────────────
         # 조건: 오픈팜(손 펼침) → 오므리기 순서여야 발화.
@@ -155,7 +171,7 @@ class GestureEngine:
             return self._handle_volume(side)
 
         # ── IDLE: 새 제스처 진입 판별 ────────────────────────────
-        return self._detect_from_idle(lm, side, frame_w, frame_h)
+        return self._detect_from_idle(lm, frame_w, frame_h)
 
     @property
     def state(self) -> str:
@@ -163,22 +179,8 @@ class GestureEngine:
 
     # ── 내부 메서드 ───────────────────────────────────────────────
 
-    def _detect_from_idle(self, lm, side, frame_w, frame_h) -> str:
+    def _detect_from_idle(self, lm, frame_w, frame_h) -> str:
         now = time.time()
-
-        # 위치 이력 업데이트 (IDLE 상태에서만 누적)
-        self._pos_history = [(x, t) for x, t in self._pos_history if now - t < self._swipe_win]
-        self._pos_history.append((lm[WRIST].x, now))
-
-        # 쿨다운 만료 시 _window_once_fired 리셋 → 연속 스와이프 허용
-        if self._window_once_fired and now - self._last_window_time >= self._window_cooldown:
-            self._window_once_fired = False
-            self._pos_history.clear()
-
-        # 스와이프 체크 (쿨다운 무관, 오픈팜 + 빠른 이동)
-        swipe = self._check_swipe(side)
-        if swipe != GESTURE_NONE:
-            return swipe
 
         # 오픈팜 후 쿨다운 중 → 새 제스처 무시
         if now < self._idle_cooldown_until:
