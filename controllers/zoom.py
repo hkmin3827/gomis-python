@@ -7,7 +7,7 @@ _INPUT_MOUSE    = 0
 _KEYEVENTF_KEYUP      = 0x0002
 _MOUSEEVENTF_WHEEL    = 0x0800
 _VK_CONTROL           = 0x11
-_WHEEL_DELTA          = 120
+_WHEEL_DELTA          = 20
 
 
 class _KEYBDINPUT(ctypes.Structure):

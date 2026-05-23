@@ -40,20 +40,26 @@ class HandTracker:
         self._landmarker = mp_vision.HandLandmarker.create_from_options(options)
         self._timestamp_ms = 0
 
-    def process(self, frame_bgr) -> HandResult | None:
-        """BGR 프레임 → HandResult(landmarks, handedness). 손 없으면 None."""
+    def process_all(self, frame_bgr) -> list:
+        """BGR 프레임 → 감지된 모든 HandResult 리스트 (0~2개). 프레임당 1회 호출."""
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         self._timestamp_ms += 33
         result = self._landmarker.detect_for_video(mp_image, self._timestamp_ms)
 
         if not result.hand_landmarks:
-            return None
+            return []
 
-        # 양손 중 첫 번째 손만 사용 (추후 다중 손 처리 확장 가능)
-        landmarks   = result.hand_landmarks[0]
-        handedness  = result.handedness[0][0].category_name if result.handedness else "Right"
-        return HandResult(landmarks, handedness)
+        hands = []
+        for i, lm in enumerate(result.hand_landmarks):
+            side = result.handedness[i][0].category_name if result.handedness else "Right"
+            hands.append(HandResult(lm, side))
+        return hands
+
+    def process(self, frame_bgr) -> HandResult | None:
+        """BGR 프레임 → 첫 번째 HandResult. 손 없으면 None."""
+        hands = self.process_all(frame_bgr)
+        return hands[0] if hands else None
 
     def draw(self, frame_bgr, landmarks):
         h, w = frame_bgr.shape[:2]

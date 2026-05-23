@@ -31,6 +31,9 @@ GESTURE_WINDOW_ALT_START_LEFT  = "window_alt_start_left"
 GESTURE_WINDOW_ALT_TAB         = "window_alt_tab"
 GESTURE_WINDOW_ALT_END         = "window_alt_end"
 
+GESTURE_VOICE_START = "voice_start"
+GESTURE_VOICE_END   = "voice_end"
+
 
 class State(Enum):
     IDLE    = "idle"
@@ -83,6 +86,12 @@ class GestureEngine:
         self._last_alt_tab_tick: float      = 0.0
         self._alt_tab_interval:  float      = 0.5
 
+        # 양손 박수 감지 (음성 타이핑)
+        self._clap_state:        str   = "apart"   # "apart" | "together"
+        self._clap_apart_time:   float = 0.0
+        self._clap_together_time: float = 0.0
+        self._clap_count:        int   = 0
+
         # 상태 진입 확정
         self._pending_desire: str | None = None
         self._pending_count: int = 0
@@ -130,7 +139,7 @@ class GestureEngine:
             self._palm_was_open = True
             self._curl_active   = False
 
-        if is_curl and self._state != State.ZOOM:
+        if is_curl and self._state not in (State.ZOOM, State.DRAG):
             if self._palm_was_open and not self._curl_active:
                 self._curl_active   = True
                 self._palm_was_open = False
@@ -276,7 +285,7 @@ class GestureEngine:
 
     def _handle_zoom(self, lm) -> str:
         """총모양 유지 중 엄지↔검지 기준거리 대비 변화로 방향 판별.
-        벌어진 상태 → DRAG_UP 매 프레임 발화 / 좁혀진 상태 → DRAG_DOWN 매 프레임 발화.
+        벌어진 상태 → ZOOM_IN 매 프레임 발화 / 좁혀진 상태 → ZOOM_OUT 매 프레임 발화.
         반대 방향 전환은 오픈팜 전까지 차단.
         """
         if self._zoom_baseline is None:
@@ -288,13 +297,13 @@ class GestureEngine:
             if self._zoom_last_dir == "out":
                 return GESTURE_NONE
             self._zoom_last_dir = "in"
-            return GESTURE_DRAG_UP
+            return GESTURE_ZOOM_IN
 
         if delta < -self._ZOOM_DELTA:
             if self._zoom_last_dir == "in":
                 return GESTURE_NONE
             self._zoom_last_dir = "out"
-            return GESTURE_DRAG_DOWN
+            return GESTURE_ZOOM_OUT
 
         return GESTURE_NONE
 
@@ -305,6 +314,46 @@ class GestureEngine:
         self._last_volume_time = now
         # flip 후 MediaPipe Left/Right 반전 — 물리적 오른손이 "Left"로 들어옴
         return GESTURE_VOLUME_UP if side == "Left" else GESTURE_VOLUME_DOWN
+
+    def detect_clap(self, hands: list) -> str | None:
+        """양손 박수 감지.
+        두 손 모두 오픈팜 + 손목 거리 < 0.35 → 박수.
+        홀수 번째 박수 → GESTURE_VOICE_START, 짝수 번째 → GESTURE_VOICE_END.
+        """
+        now = time.time()
+
+        if len(hands) < 2:
+            if self._clap_state == "together":
+                self._clap_state = "apart"
+                self._clap_apart_time = now
+            return None
+
+        h1, h2 = hands[0], hands[1]
+        # 양손 모두 오픈팜 + 정면도 >= 0.4 (손날/측면 오인식 방어)
+        both_open = (
+            _is_open_palm(h1.landmarks) and _palm_facing_ratio(h1.landmarks) >= 0.4 and
+            _is_open_palm(h2.landmarks) and _palm_facing_ratio(h2.landmarks) >= 0.4
+        )
+
+        dx = h1.landmarks[WRIST].x - h2.landmarks[WRIST].x
+        dy = h1.landmarks[WRIST].y - h2.landmarks[WRIST].y
+        dist = (dx * dx + dy * dy) ** 0.5
+
+        together = both_open and dist < 0.35
+
+        if together and self._clap_state == "apart":
+            if now - self._clap_apart_time > 0.3:  # 연속 오인식 방지
+                self._clap_state = "together"
+                self._clap_together_time = now
+                self._clap_count += 1
+                return GESTURE_VOICE_START if self._clap_count % 2 == 1 else GESTURE_VOICE_END
+
+        elif not together and self._clap_state == "together":
+            if now - self._clap_together_time > 0.15:
+                self._clap_state = "apart"
+                self._clap_apart_time = now
+
+        return None
 
     def _reset_tracking(self):
         self._drag_baseline_y  = None
@@ -349,11 +398,13 @@ def _is_cursor(lm) -> bool:
     return i and not m and not r and not p and not _thumb_extended(lm)
 
 def _is_drag_pose(lm) -> bool:
-    """검지+중지 V자 — 오픈팜 제외, 엄지 접힘 필수."""
-    i, m, _, _ = _fingers_up(lm)
-    if not (i and m and not _is_open_palm(lm)):
+    """검지+중지 V자. 손 정면도 >= 0.5 (45° 이내) + 엄지 접힘 필수."""
+    if _palm_facing_ratio(lm) < 0.5:   # 45° 기준 — 너무 옆이면 drag 불가
         return False
-    # 엄지 tip이 IP(중간 관절)보다 손목에 더 가까우면 접힌 상태
+    index_up  = lm[INDEX_TIP].y  < lm[INDEX_PIP].y
+    middle_up = lm[MIDDLE_TIP].y < lm[MIDDLE_PIP].y
+    if not (index_up and middle_up and not _is_open_palm(lm)):
+        return False
     def _d2(a, b):
         return (lm[a].x - lm[b].x)**2 + (lm[a].y - lm[b].y)**2
     return _d2(THUMB_TIP, WRIST) < _d2(THUMB_IP, WRIST)
@@ -378,6 +429,20 @@ def _palm_ref(lm) -> float:
     dx = lm[WRIST].x - lm[MIDDLE_MCP].x
     dy = lm[WRIST].y - lm[MIDDLE_MCP].y
     return (dx*dx + dy*dy) ** 0.5
+
+def _lm_dist(lm, a: int, b: int) -> float:
+    """두 랜드마크 간 2D 거리."""
+    dx = lm[a].x - lm[b].x
+    dy = lm[a].y - lm[b].y
+    return (dx*dx + dy*dy) ** 0.5
+
+def _palm_facing_ratio(lm) -> float:
+    """정면도 비율: INDEX_MCP~PINKY_MCP x너비 / 손바닥 기준값.
+    1에 가까울수록 정면, 0에 가까울수록 측면. 45° ≈ 0.5.
+    """
+    width = abs(lm[INDEX_MCP].x - lm[PINKY_MCP].x)
+    ref = _palm_ref(lm)
+    return width / ref if ref > 1e-6 else 0.0
 
 def _three_finger_dist(lm) -> float:
     """엄지+검지+중지 끝 3쌍 중 최대 거리 (삼각형 외접원 지름 근사)."""
@@ -410,10 +475,19 @@ def _thumb_index_dist(lm) -> float:
     return (dx * dx + dy * dy) ** 0.5
 
 def _is_gun_pose(lm, side: str) -> bool:
-    """줌 진입 포즈: 엄지 완전 폄 + 검지 어느정도 세움 + 나머지 3개 접힘."""
-    _, m, r, p = _fingers_up(lm)
+    """줌 진입: 엄지 폄 + 검지 세움 + 나머지 접힘 + 손 측면도 >= 0.5 (45° 기준).
+    curl 검사는 거리 기반 — y좌표 방식은 손 기울기에 취약하므로 사용 안 함.
+    """
+    if _palm_facing_ratio(lm) >= 0.5:  # 45° 기준 — 너무 정면이면 zoom 불가
+        return False
     index_up = lm[INDEX_TIP].y < lm[INDEX_MCP].y
-    return _is_thumb_extended(lm, side) and index_up and not m and not r and not p
+    if not _is_thumb_extended(lm, side) or not index_up:
+        return False
+    ref = _palm_ref(lm)
+    middle_curled = _lm_dist(lm, MIDDLE_TIP, MIDDLE_MCP) < ref * 0.85
+    ring_curled   = _lm_dist(lm, RING_TIP,   RING_MCP)   < ref * 0.85
+    pinky_curled  = _lm_dist(lm, PINKY_TIP,  PINKY_MCP)  < ref * 0.85
+    return middle_curled and ring_curled and pinky_curled
 
 def _is_three_finger_spread(lm) -> bool:
     """줌 진입: 엄지+검지+중지 세손가락이 충분히 벌어진 상태(측면 자세).

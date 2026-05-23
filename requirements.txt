@@ -13,6 +13,8 @@ comtypes>=1.2.0
 
 # 음성 인식 (Whisper 로컬)
 openai-whisper>=20231117
+sounddevice>=0.4.6      # 실시간 마이크 녹음 (PortAudio 내장)
+pyperclip>=1.8.2        # 클립보드 경유 한글 타이핑
 # Whisper 의존성
 torch>=2.0.0
 torchaudio>=2.0.0
