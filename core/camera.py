@@ -23,8 +23,11 @@ class Camera:
             raise RuntimeError(f"카메라 {self.index}번을 열 수 없습니다.")
 
     def read(self):
-        """(success: bool, frame: ndarray) 반환. frame은 BGR 포맷."""
-        return self._cap.read()
+        """(success: bool, frame: ndarray) 반환. frame은 BGR 포맷 (좌우 반전 적용)."""
+        ok, frame = self._cap.read()
+        if ok:
+            frame = cv2.flip(frame, 1)
+        return ok, frame
 
     def close(self):
         if self._cap and self._cap.isOpened():

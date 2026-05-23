@@ -30,10 +30,9 @@ class CursorController:
         """
         raw_x  = landmarks[INDEX_TIP].x
         raw_y  = landmarks[INDEX_TIP].y
-        # X 축 반전: 웹캠은 거울상이므로 손 움직임과 커서 방향을 일치시킴
         active_x = 1.0 - _MARGIN_LEFT - _MARGIN_RIGHT
         active_y = 1.0 - _MARGIN_TOP  - _MARGIN_BOTTOM
-        nx = max(0.0, min(1.0, 1.0 - (raw_x - _MARGIN_LEFT) / active_x))
+        nx = max(0.0, min(1.0, (raw_x - _MARGIN_LEFT) / active_x))
         ny = max(0.0, min(1.0, (raw_y - _MARGIN_TOP) / active_y))
 
         tx = nx * self._screen_w

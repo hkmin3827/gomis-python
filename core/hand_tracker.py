@@ -12,7 +12,7 @@ MODEL_PATH  = Path(__file__).parent / "hand_landmarker.task"
 
 # 랜드마크 인덱스
 WRIST      = 0
-THUMB_TIP  = 4
+THUMB_TIP  = 4; THUMB_IP = 3
 INDEX_TIP  = 8;  INDEX_PIP  = 6;  INDEX_MCP  = 5
 MIDDLE_TIP = 12; MIDDLE_PIP = 10; MIDDLE_MCP = 9
 RING_TIP   = 16; RING_PIP   = 14; RING_MCP   = 13
