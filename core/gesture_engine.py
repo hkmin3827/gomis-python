@@ -45,9 +45,8 @@ class GestureEngine:
     _CONFIRM_FRAMES = 3
     _IDLE_COOLDOWN  = 0.5
 
-    # 줌 — 3-finger 핀치 임계값
-    _ZOOM_ENTRY_RATIO  = 0.42
-    _ZOOM_DELTA        = 0.03   # 줌 발화 최소 변화량 (정규화 좌표)
+    _ZOOM_DELTA      = 0.03   # 기준 거리에서 이 이상 벌어지거나 좁혀지면 연속 발화
+    _DRAG_THRESHOLD  = 0.05   # 기준 Y에서 이 이상 벗어나면 연속 발화 (정규화 좌표)
 
     def __init__(self, tracker: HandTracker):
         cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
@@ -56,14 +55,12 @@ class GestureEngine:
 
         self._state = State.IDLE
 
-        # 드래그
-        self._prev_drag_y: float | None = None
-        self._drag_accum:  float        = 0.0
-        self._DRAG_STEP                 = 5
+        # 드래그 — 진입 시 기준 Y 고정, 위/아래 유지 시 연속 발화
+        self._drag_baseline_y: float | None = None
 
-        # 줌 — 방향 고정 (오픈팜 전까지 같은 방향만 발화)
-        self._zoom_last_fired: float | None = None
-        self._zoom_last_dir:   str | None   = None   # "in" | "out"
+        # 줌 — 진입 시 기준거리 고정, 매 프레임 연속 발화
+        self._zoom_baseline: float | None = None   # 진입 시 기준 거리
+        self._zoom_last_dir: str | None   = None   # "in" | "out"
 
         # 볼륨
         self._last_volume_time = 0.0
@@ -163,7 +160,7 @@ class GestureEngine:
             return GESTURE_CURSOR if _is_cursor(lm) else GESTURE_NONE
 
         if self._state == State.DRAG:
-            return self._handle_drag(lm, frame_h)
+            return self._handle_drag(lm)
 
         if self._state == State.ZOOM:
             return self._handle_zoom(lm)
@@ -209,7 +206,7 @@ class GestureEngine:
             self._pending_desire = desire
             self._pending_count  = 1
 
-        confirm_needed = 1 if desire == "drag" else self._CONFIRM_FRAMES
+        confirm_needed = 1 if desire in ("drag", "cursor") else self._CONFIRM_FRAMES
         if self._pending_count < confirm_needed:
             return GESTURE_NONE
 
@@ -218,8 +215,8 @@ class GestureEngine:
 
         if desire == "zoom_gun":
             self._state = State.ZOOM
-            self._zoom_last_fired = _thumb_index_dist(lm)
-            self._zoom_last_dir   = None
+            self._zoom_baseline = _thumb_index_dist(lm)
+            self._zoom_last_dir = None
             return GESTURE_NONE
 
         if desire == "cursor":
@@ -263,48 +260,41 @@ class GestureEngine:
             return GESTURE_WINDOW_ALT_TAB
         return GESTURE_NONE
 
-    def _handle_drag(self, lm, frame_h) -> str:
+    def _handle_drag(self, lm) -> str:
+        """진입 시 기준 Y 고정 — 기준보다 위면 DRAG_UP, 아래면 DRAG_DOWN 연속 발화."""
         curr_y = lm[INDEX_TIP].y
-        if self._prev_drag_y is None:
-            self._prev_drag_y = curr_y
+        if self._drag_baseline_y is None:
+            self._drag_baseline_y = curr_y
             return GESTURE_NONE
 
-        delta = (curr_y - self._prev_drag_y) * frame_h
-        self._prev_drag_y = curr_y
-        self._drag_accum += delta
-
-        if self._drag_accum < -self._DRAG_STEP:
-            self._drag_accum += self._DRAG_STEP
+        delta = curr_y - self._drag_baseline_y
+        if delta < -self._DRAG_THRESHOLD:
             return GESTURE_DRAG_UP
-        if self._drag_accum > self._DRAG_STEP:
-            self._drag_accum -= self._DRAG_STEP
+        if delta > self._DRAG_THRESHOLD:
             return GESTURE_DRAG_DOWN
         return GESTURE_NONE
 
     def _handle_zoom(self, lm) -> str:
-        """총모양 포즈 유지 중 엄지↔검지 tip 거리 변화로 줌인/줌아웃 판별.
-        한 방향으로 여러 번 연속 발화 가능. 반대 방향은 오픈팜 전까지 차단.
+        """총모양 유지 중 엄지↔검지 기준거리 대비 변화로 방향 판별.
+        벌어진 상태 → DRAG_UP 매 프레임 발화 / 좁혀진 상태 → DRAG_DOWN 매 프레임 발화.
+        반대 방향 전환은 오픈팜 전까지 차단.
         """
-        dist = _thumb_index_dist(lm)
-        if self._zoom_last_fired is None:
-            self._zoom_last_fired = dist
+        if self._zoom_baseline is None:
             return GESTURE_NONE
 
-        delta = dist - self._zoom_last_fired
+        delta = _thumb_index_dist(lm) - self._zoom_baseline
 
         if delta > self._ZOOM_DELTA:
             if self._zoom_last_dir == "out":
-                return GESTURE_NONE          # 방향 고정 — 차   단
-            self._zoom_last_dir   = "in"
-            self._zoom_last_fired = dist
-            return GESTURE_ZOOM_IN
+                return GESTURE_NONE
+            self._zoom_last_dir = "in"
+            return GESTURE_DRAG_UP
 
         if delta < -self._ZOOM_DELTA:
             if self._zoom_last_dir == "in":
-                return GESTURE_NONE    # 방향 고정 — 차단
-            self._zoom_last_dir   = "out"
-            self._zoom_last_fired = dist
-            return GESTURE_ZOOM_OUT
+                return GESTURE_NONE
+            self._zoom_last_dir = "out"
+            return GESTURE_DRAG_DOWN
 
         return GESTURE_NONE
 
@@ -317,13 +307,13 @@ class GestureEngine:
         return GESTURE_VOLUME_UP if side == "Left" else GESTURE_VOLUME_DOWN
 
     def _reset_tracking(self):
-        self._prev_drag_y      = None
-        self._drag_accum       = 0.0
-        self._zoom_last_fired  = None
+        self._drag_baseline_y  = None
+        self._zoom_baseline    = None
         self._zoom_last_dir    = None
         self._pending_desire   = None
         self._pending_count    = 0
         self._palm_was_open    = False
+        self._zoom_last_dir    = None
         self._alt_tab_dir      = None
         self._last_alt_tab_tick = 0.0
         self._pos_history.clear()
