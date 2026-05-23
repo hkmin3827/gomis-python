@@ -34,7 +34,7 @@ class PreviewWindow(QWidget):
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self._timer.start(33)   # ~30fps
+        self._timer.start(33)
 
     def set_debug(self, enabled: bool):
         self._debug = enabled
@@ -70,6 +70,5 @@ class PreviewWindow(QWidget):
         return QPixmap.fromImage(img).scaled(640, 480, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
     def closeEvent(self, event):
-        # 닫기 버튼 → 숨기기 (트레이에서 다시 열 수 있음)
         event.ignore()
         self.hide()

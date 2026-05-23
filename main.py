@@ -36,6 +36,8 @@ def main():
         GESTURE_ZOOM_IN, GESTURE_ZOOM_OUT,
         GESTURE_VOLUME_UP, GESTURE_VOLUME_DOWN,
         GESTURE_WINDOW_LEFT, GESTURE_WINDOW_RIGHT,
+        GESTURE_WINDOW_ALT_START_RIGHT, GESTURE_WINDOW_ALT_START_LEFT,
+        GESTURE_WINDOW_ALT_TAB, GESTURE_WINDOW_ALT_END,
     )
     from controllers import (
         CursorController, ScrollController,
@@ -96,7 +98,7 @@ def main():
     preview = PreviewWindow(run_frame)
     tray    = TrayIcon()
 
-    tray.quit_requested.connect(lambda: _shutdown(app, cam, tracker))
+    tray.quit_requested.connect(lambda: _shutdown(app, cam, tracker, windows))
     tray.debug_toggled.connect(preview.set_debug)
     tray.preview_toggled.connect(lambda: preview.show() if preview.isHidden() else preview.hide())
 
@@ -107,7 +109,9 @@ def main():
     sys.exit(app.exec_())
 
 
-def _shutdown(app, cam, tracker):
+def _shutdown(app, cam, tracker, windows=None):
+    if windows:
+        windows.force_release()
     cam.close()
     tracker.close()
     app.quit()

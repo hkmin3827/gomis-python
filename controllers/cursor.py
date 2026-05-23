@@ -8,17 +8,17 @@ CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
 
-# 웹캠 데드존 마진 — 상하좌우 동일 20%
+# 웹캠 데드존 마진 (cursor)
 _MARGIN_LEFT   = 0.20
 _MARGIN_RIGHT  = 0.20
-_MARGIN_TOP    = 0.20
-_MARGIN_BOTTOM = 0.20
+_MARGIN_TOP    = 0.30
+_MARGIN_BOTTOM = 0.30
 
 
 class CursorController:
     def __init__(self):
         cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
-        self._smoothing = cfg["cursor_smoothing"]   # 0~1, 높을수록 부드럽고 느림
+        self._smoothing = cfg["cursor_smoothing"]
         self._screen_w, self._screen_h = pyautogui.size()
         self._prev_x: float | None = None
         self._prev_y: float | None = None
@@ -41,7 +41,6 @@ class CursorController:
         if self._prev_x is None:
             self._prev_x, self._prev_y = tx, ty
 
-        # 지수 이동 평균으로 떨림 완화
         sx = self._prev_x * self._smoothing + tx * (1 - self._smoothing)
         sy = self._prev_y * self._smoothing + ty * (1 - self._smoothing)
         self._prev_x, self._prev_y = sx, sy

@@ -20,7 +20,6 @@ PINKY_TIP  = 20; PINKY_PIP  = 18; PINKY_MCP  = 17
 
 CONNECTIONS = mp_vision.HandLandmarksConnections.HAND_CONNECTIONS
 
-# 처리 결과 타입
 HandResult = namedtuple("HandResult", ["landmarks", "handedness"])  # handedness: "Left" | "Right"
 
 

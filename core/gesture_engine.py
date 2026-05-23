@@ -1,14 +1,3 @@
-"""
-제스처 판별 엔진 — 상태 기계(State Machine) 방식.
-
-상태 전이:
-  IDLE → CURSOR / DRAG / ZOOM / VOLUME  (3 프레임 연속 포즈 유지 후 확정)
-  연속 상태 → IDLE  (손바닥 펴기로만 종료, 이후 0.5 s 쿨다운)
-  클릭/더블클릭: 어떤 상태에서든 즉시 발화 (오픈팜 → 오므리기 순서 필수)
-  창 전환: 오픈팜 + 수평 스와이프 (상태 무관, 방향만으로 판별)
-  줌: 3-finger 핀치(엄지+검지+중지 끝 삼각형) 진입 → 벌리면 줌인 / 좁히면 줌아웃
-"""
-
 import json
 import time
 from enum import Enum
@@ -25,7 +14,6 @@ from .hand_tracker import (
 
 CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
 
-# ── 제스처 이름 상수 ─────────────────────────────────────────────
 GESTURE_NONE          = "none"
 GESTURE_CURSOR        = "cursor"
 GESTURE_CLICK         = "click"
@@ -38,15 +26,19 @@ GESTURE_VOLUME_UP     = "volume_up"
 GESTURE_VOLUME_DOWN   = "volume_down"
 GESTURE_WINDOW_RIGHT  = "window_right"
 GESTURE_WINDOW_LEFT   = "window_left"
+GESTURE_WINDOW_ALT_START_RIGHT = "window_alt_start_right"
+GESTURE_WINDOW_ALT_START_LEFT  = "window_alt_start_left"
+GESTURE_WINDOW_ALT_TAB         = "window_alt_tab"
+GESTURE_WINDOW_ALT_END         = "window_alt_end"
 
 
-# ── 상태 ─────────────────────────────────────────────────────────
 class State(Enum):
     IDLE    = "idle"
     CURSOR  = "cursor"
     DRAG    = "drag"
     ZOOM    = "zoom"
     VOLUME  = "volume"
+    ALT_TAB = "alt_tab"
 
 
 class GestureEngine:
@@ -54,7 +46,7 @@ class GestureEngine:
     _IDLE_COOLDOWN  = 0.5
 
     # 줌 — 3-finger 핀치 임계값
-    _ZOOM_ENTRY_RATIO  = 0.42   # 삼각형 지름 / 손 기준값 < 이 값이면 핀치 상태
+    _ZOOM_ENTRY_RATIO  = 0.42
     _ZOOM_DELTA        = 0.03   # 줌 발화 최소 변화량 (정규화 좌표)
 
     def __init__(self, tracker: HandTracker):
@@ -83,25 +75,29 @@ class GestureEngine:
         self._curl_active      = False
         self._palm_was_open    = False
 
-        # 창 전환
-        self._last_window_time  = 0.0
-        self._window_cooldown   = 1.0
-        self._window_once_fired = False
+        # 창 전환 (스와이프 감지)
         self._pos_history: list[tuple[float, float]] = []
         self._swipe_win         = 0.5
         self._swipe_dist        = 0.30
         self._swipe_min_vel     = 0.20
 
+        # Alt+Tab 홀드 모드
+        self._alt_tab_dir:       str | None = None   # "right" | "left"
+        self._last_alt_tab_tick: float      = 0.0
+        self._alt_tab_interval:  float      = 0.5
+
         # 상태 진입 확정
         self._pending_desire: str | None = None
         self._pending_count: int = 0
-
         self._idle_cooldown_until: float = 0.0
 
-    # ── 공개 메서드 ───────────────────────────────────────────────
 
     def detect(self, hand: HandResult | None, frame_w: int, frame_h: int) -> str:
         if hand is None:
+            if self._state == State.ALT_TAB:
+                self._state = State.IDLE
+                self._reset_tracking()
+                return GESTURE_WINDOW_ALT_END
             self._state = State.IDLE
             self._reset_tracking()
             self._curl_active = False
@@ -111,21 +107,25 @@ class GestureEngine:
         side = hand.handedness
         now  = time.time()
 
-        # ── 손목 위치 이력 누적 (상태 무관) ──────────────────────
+        # 손목 위치 누적
         self._pos_history = [(x, t) for x, t in self._pos_history if now - t < self._swipe_win]
         self._pos_history.append((lm[WRIST].x, now))
 
-        if self._window_once_fired and now - self._last_window_time >= self._window_cooldown:
-            self._window_once_fired = False
-            self._pos_history.clear()
+        # Alt+Tab 홀드 상태 — 주먹으로만 종료
+        if self._state == State.ALT_TAB:
+            return self._handle_alt_tab(lm, now)
 
-        # ── 창 전환: 오픈팜 + 수평 스와이프 (상태 무관) ──────────
+        # 창 전환: 오픈팜 + 수평 스와이프 → Alt+Tab 홀드 진입
         if _is_open_palm(lm):
-            swipe = self._check_swipe()
-            if swipe != GESTURE_NONE:
-                return swipe
+            swipe_dir = self._check_swipe_dir()
+            if swipe_dir is not None:
+                self._state = State.ALT_TAB
+                self._alt_tab_dir = swipe_dir
+                self._last_alt_tab_tick = now
+                return (GESTURE_WINDOW_ALT_START_RIGHT if swipe_dir == "right"
+                        else GESTURE_WINDOW_ALT_START_LEFT)
 
-        # ── 클릭/더블클릭 (ZOOM 상태 제외) ──────────────────────
+        # 클릭/더블클릭 (ZOOM 상태 제외) 
         is_open = _is_open_palm(lm)
         is_curl = _is_curl(lm)
 
@@ -151,14 +151,14 @@ class GestureEngine:
         if not is_curl:
             self._curl_active = False
 
-        # ── 손바닥 펴기 → 연속 제스처 종료 ───────────────────────
+        # 손바닥 펴기 → 연속 제스처 종료 
         if self._state != State.IDLE and _is_open_palm(lm):
             self._state = State.IDLE
             self._reset_tracking()
             self._idle_cooldown_until = time.time() + self._IDLE_COOLDOWN
             return GESTURE_NONE
 
-        # ── 연속 상태 처리 ────────────────────────────────────────
+        # 연속 상태 처리 
         if self._state == State.CURSOR:
             return GESTURE_CURSOR if _is_cursor(lm) else GESTURE_NONE
 
@@ -177,7 +177,7 @@ class GestureEngine:
     def state(self) -> str:
         return self._state.value
 
-    # ── 내부 메서드 ───────────────────────────────────────────────
+
 
     def _detect_from_idle(self, lm, side, frame_w, frame_h) -> str:
         now = time.time()
@@ -209,7 +209,6 @@ class GestureEngine:
             self._pending_desire = desire
             self._pending_count  = 1
 
-        # 드래그는 V자 유지가 어려우므로 1프레임 즉시 진입
         confirm_needed = 1 if desire == "drag" else self._CONFIRM_FRAMES
         if self._pending_count < confirm_needed:
             return GESTURE_NONE
@@ -238,28 +237,30 @@ class GestureEngine:
 
         return GESTURE_NONE
 
-    def _check_swipe(self) -> str:
-        if self._window_once_fired:
-            return GESTURE_NONE
+    def _check_swipe_dir(self) -> str | None:
+        """스와이프 방향 감지. 감지 시 history 초기화. "right"/"left"/None 반환."""
         if len(self._pos_history) < 5:
-            return GESTURE_NONE
-        now = time.time()
-        if now - self._last_window_time < self._window_cooldown:
-            return GESTURE_NONE
-
+            return None
         xs = [x for x, _ in self._pos_history]
         ts = [t for _, t in self._pos_history]
         displacement = xs[-1] - xs[0]
         duration = max(ts[-1] - ts[0], 1e-6)
         velocity = displacement / duration
-
         if abs(velocity) > self._swipe_min_vel and abs(displacement) > self._swipe_dist:
-            is_right_swipe = displacement > 0  # flip 적용 후 자연 방향
-            self._last_window_time  = now
-            self._window_once_fired = True
             self._pos_history.clear()
-            return GESTURE_WINDOW_RIGHT if is_right_swipe else GESTURE_WINDOW_LEFT
+            return "right" if displacement > 0 else "left"
+        return None
 
+    def _handle_alt_tab(self, lm, now: float) -> str:
+        """Alt 홀드 중: 주먹 → Alt 해제, 1초마다 Tab 발화."""
+        if _is_curl(lm):
+            self._state = State.IDLE
+            self._reset_tracking()
+            self._idle_cooldown_until = now + self._IDLE_COOLDOWN
+            return GESTURE_WINDOW_ALT_END
+        if now - self._last_alt_tab_tick >= self._alt_tab_interval:
+            self._last_alt_tab_tick = now
+            return GESTURE_WINDOW_ALT_TAB
         return GESTURE_NONE
 
     def _handle_drag(self, lm, frame_h) -> str:
@@ -293,14 +294,14 @@ class GestureEngine:
 
         if delta > self._ZOOM_DELTA:
             if self._zoom_last_dir == "out":
-                return GESTURE_NONE          # 방향 고정 — 차단
+                return GESTURE_NONE          # 방향 고정 — 차   단
             self._zoom_last_dir   = "in"
             self._zoom_last_fired = dist
             return GESTURE_ZOOM_IN
 
         if delta < -self._ZOOM_DELTA:
             if self._zoom_last_dir == "in":
-                return GESTURE_NONE          # 방향 고정 — 차단
+                return GESTURE_NONE    # 방향 고정 — 차단
             self._zoom_last_dir   = "out"
             self._zoom_last_fired = dist
             return GESTURE_ZOOM_OUT
@@ -316,18 +317,17 @@ class GestureEngine:
         return GESTURE_VOLUME_UP if side == "Left" else GESTURE_VOLUME_DOWN
 
     def _reset_tracking(self):
-        self._prev_drag_y       = None
-        self._drag_accum        = 0.0
-        self._zoom_last_fired   = None
-        self._zoom_last_dir     = None
-        self._pending_desire    = None
-        self._pending_count     = 0
-        self._window_once_fired = False
-        self._palm_was_open     = False
+        self._prev_drag_y      = None
+        self._drag_accum       = 0.0
+        self._zoom_last_fired  = None
+        self._zoom_last_dir    = None
+        self._pending_desire   = None
+        self._pending_count    = 0
+        self._palm_was_open    = False
+        self._alt_tab_dir      = None
+        self._last_alt_tab_tick = 0.0
         self._pos_history.clear()
 
-
-# ── 포즈 판별 함수 (순수 함수) ───────────────────────────────────
 
 def _fingers_up(lm) -> tuple[bool, bool, bool, bool]:
     return (

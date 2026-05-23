@@ -1,5 +1,4 @@
 import ctypes
-import ctypes.wintypes
 from core.gesture_engine import GESTURE_ZOOM_IN, GESTURE_ZOOM_OUT
 
 # Windows SendInput 구조체 정의

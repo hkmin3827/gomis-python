@@ -9,7 +9,6 @@ STEP = 0.03     # 한 번 발화 시 볼륨 변화량 (0.0~1.0 기준, 약 3%)
 class VolumeController:
     def __init__(self):
         devices = AudioUtilities.GetSpeakers()
-        # pycaw 최신 버전은 AudioDevice 래퍼를 반환하므로 _dev로 COM 객체에 접근
         dev = getattr(devices, "_dev", devices)
         interface = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self._volume = cast(interface, POINTER(IAudioEndpointVolume))

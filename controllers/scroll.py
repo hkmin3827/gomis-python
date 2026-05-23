@@ -11,10 +11,10 @@ pyautogui.PAUSE = 0
 class ScrollController:
     def __init__(self):
         cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
-        self._speed = cfg["scroll_speed"]   # 한 번 발화 시 스크롤 단위
+        self._speed = cfg["scroll_speed"]
 
     def handle(self, gesture: str):
         if gesture == GESTURE_DRAG_UP:
-            pyautogui.scroll(self._speed)       # 양수 = 위로
+            pyautogui.scroll(self._speed)
         elif gesture == GESTURE_DRAG_DOWN:
-            pyautogui.scroll(-self._speed)      # 음수 = 아래로
+            pyautogui.scroll(-self._speed)

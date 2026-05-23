@@ -49,7 +49,6 @@ class TrayIcon(QObject):
         self.debug_toggled.emit(self._debug_on)
 
     def _on_activated(self, reason):
-        # 트레이 아이콘 더블클릭 → 미리보기 창 토글
         if reason == QSystemTrayIcon.DoubleClick:
             self.preview_toggled.emit()
 
