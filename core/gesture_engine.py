@@ -5,7 +5,7 @@
   IDLE → CURSOR / DRAG / ZOOM / VOLUME  (3 프레임 연속 포즈 유지 후 확정)
   연속 상태 → IDLE  (손바닥 펴기로만 종료, 이후 0.5 s 쿨다운)
   클릭/더블클릭: 어떤 상태에서든 즉시 발화 (오므리기 앞전에만)
-  창 전환: IDLE 에서 3 프레임 확정 후 원샷 발화
+  창 전환: 오픈팜 + 수평 스와이프 (상태 무관, 방향만으로 판별)
 """
 
 import json
@@ -35,8 +35,8 @@ GESTURE_ZOOM_IN       = "zoom_in"        # 엄지+검지 벌리기
 GESTURE_ZOOM_OUT      = "zoom_out"       # 엄지+검지 좁히기
 GESTURE_VOLUME_UP     = "volume_up"      # 오른손 샤카 (연속)
 GESTURE_VOLUME_DOWN   = "volume_down"    # 왼손 샤카 (연속)
-GESTURE_WINDOW_RIGHT  = "window_right"   # 오른손 창 전환
-GESTURE_WINDOW_LEFT   = "window_left"    # 왼손 창 전환
+GESTURE_WINDOW_RIGHT  = "window_right"   # 다음 창 (오른쪽 스와이프)
+GESTURE_WINDOW_LEFT   = "window_left"    # 이전 창 (왼쪽 스와이프)
 
 
 # ── 상태 ─────────────────────────────────────────────────────────
@@ -61,31 +61,31 @@ class GestureEngine:
 
         # 드래그 추적 — Y 이동량 누적 후 비례 스크롤
         self._prev_drag_y: float | None = None
-        self._drag_accum:  float        = 0.0   # 누적 Y 이동량(px)
-        self._DRAG_STEP                 = 5    # 스크롤 1회 발화당 필요 누적 픽셀
+        self._drag_accum:  float        = 0.0
+        self._DRAG_STEP                 = 5
 
         # 줌 추적 — 오픈팜 전까지 방향 전환 완전 차단
         self._zoom_last_fired: float | None = None
-        self._zoom_last_dir:   str | None   = None   # "in" or "out", 오픈팜 전 고정
+        self._zoom_last_dir:   str | None   = None
 
         # 볼륨 쿨다운 (초당 최대 3회)
         self._last_volume_time = 0.0
         self._volume_cooldown  = 1.0 / 3.0
 
-        # 클릭 — 오픈팜 → 오므리기 → 오픈팜 순서 강제
+        # 클릭 — 오픈팜 → 오므리기 순서 강제
         self._last_click_time  = 0.0
-        self._double_click_gap = 0.4    # 더블클릭 인정 간격(초)
-        self._curl_active      = False  # 오므린 채 유지 중 → 재발화 방지
-        self._palm_was_open    = False  # 직전에 오픈팜이었는지 (클릭 사전 조건)
+        self._double_click_gap = 0.4
+        self._curl_active      = False
+        self._palm_was_open    = False
 
-        # 창 전환 — 스와이프 감지 (IDLE 세션당 1회 제한)
+        # 창 전환 — 오픈팜 + 수평 스와이프 (손 방향 무관, 이동 방향만 판별)
         self._last_window_time  = 0.0
         self._window_cooldown   = 1.0
-        self._window_once_fired = False  # 쿨다운 전까지 재발화 차단
+        self._window_once_fired = False
         self._pos_history: list[tuple[float, float]] = []  # (wrist_x, timestamp)
         self._swipe_win         = 0.5    # 추적 시간 윈도우(초)
         self._swipe_dist        = 0.30   # 웹캠 너비 30% 이동 필요
-        self._swipe_min_vel     = 0.20   # 정규화/초 기준 최소 속도 (완화)
+        self._swipe_min_vel     = 0.20   # 최소 속도 (정규화/초)
 
         # 상태 진입 확정 (N 프레임 연속 포즈)
         self._pending_desire: str | None = None
@@ -117,14 +117,14 @@ class GestureEngine:
             self._pos_history.clear()
 
         # ── 창 전환: 오픈팜 + 수평 스와이프 (상태 무관) ──────────
+        # 오른쪽 스와이프 → 다음 창 / 왼쪽 스와이프 → 이전 창
         if _is_open_palm(lm):
-            swipe = self._check_swipe(side)
+            swipe = self._check_swipe()
             if swipe != GESTURE_NONE:
                 return swipe
 
         # ── 클릭/더블클릭 ────────────────────────────────────────
-        # 조건: 오픈팜(손 펼침) → 오므리기 순서여야 발화.
-        # ZOOM 상태에서는 차단 (L자 핀치와 충돌).
+        # 조건: 오픈팜 → 오므리기 순서여야 발화. ZOOM 상태에서는 차단.
         is_open = _is_open_palm(lm)
         is_curl = _is_curl(lm)
 
@@ -144,7 +144,7 @@ class GestureEngine:
                 self._last_click_time = now
                 return GESTURE_CLICK
             elif not self._palm_was_open:
-                self._curl_active = True  # 오픈팜 없이 오므린 경우 — 발화 안 함
+                self._curl_active = True
             return GESTURE_NONE
 
         if not is_curl:
@@ -189,7 +189,6 @@ class GestureEngine:
             return GESTURE_NONE
 
         # 포즈 감지 우선순위: zoom > cursor > drag > volume
-        # zoom을 cursor보다 먼저 체크: 꼬집기 중 검지가 올라와도 zoom으로 인식
         desire: str | None = None
         if _is_zoom_entry(lm):
             desire = "zoom"
@@ -212,7 +211,6 @@ class GestureEngine:
             self._pending_desire = desire
             self._pending_count  = 1
 
-        # 드래그는 1프레임으로 즉시 진입 (V자 유지하기 어려워 확정 생략)
         confirm_needed = 1 if desire == "drag" else self._CONFIRM_FRAMES
         if self._pending_count < confirm_needed:
             return GESTURE_NONE
@@ -241,10 +239,9 @@ class GestureEngine:
 
         return GESTURE_NONE
 
-    def _check_swipe(self, side: str) -> str:
-        """IDLE 상태에서 빠른 수평 이동 → 창 전환 (손 모양 무관).
-        오른손 오른쪽 쓸기 → 다음 창 / 왼손 왼쪽 쓸기 → 이전 창.
-        스와이프 1회 발화 후 _reset_tracking 전까지 재발화 차단.
+    def _check_swipe(self) -> str:
+        """오픈팜 + 수평 이동 → 창 전환.
+        손 방향 무관. 사람 기준 오른쪽 스와이프(웹캠 x 감소) → 다음 창.
         """
         if self._window_once_fired:
             return GESTURE_NONE
@@ -261,21 +258,16 @@ class GestureEngine:
         velocity = displacement / duration
 
         if abs(velocity) > self._swipe_min_vel and abs(displacement) > self._swipe_dist:
-            # 카메라 좌우반전: displacement < 0 → 사용자가 오른쪽으로 쓸어넘긴 것
+            # 카메라 좌우반전: displacement < 0 → 사람이 오른쪽으로 스와이프한 것
             is_right_swipe = displacement < 0
-            # 오른손 + 오른쪽 스와이프, 왼손 + 왼쪽 스와이프만 허용
-            if (side == "Right" and is_right_swipe) or (side == "Left" and not is_right_swipe):
-                self._last_window_time  = now
-                self._window_once_fired = True
-                self._pos_history.clear()
-                return GESTURE_WINDOW_RIGHT if is_right_swipe else GESTURE_WINDOW_LEFT
+            self._last_window_time  = now
+            self._window_once_fired = True
+            self._pos_history.clear()
+            return GESTURE_WINDOW_RIGHT if is_right_swipe else GESTURE_WINDOW_LEFT
 
         return GESTURE_NONE
 
     def _handle_drag(self, lm, frame_h) -> str:
-        """Y 이동량을 누적해서 SCROLL_STEP마다 스크롤 1회 발화.
-        커서처럼 드래그 모드를 유지하며, 손 이동 속도에 비례해 스크롤.
-        """
         curr_y = lm[INDEX_TIP].y
         if self._prev_drag_y is None:
             self._prev_drag_y = curr_y
@@ -301,14 +293,14 @@ class GestureEngine:
         delta = dist - self._zoom_last_fired
 
         if delta > 20:
-            if self._zoom_last_dir == "out":  # 반대 방향 완전 차단 — 오픈팜 필요
+            if self._zoom_last_dir == "out":
                 return GESTURE_NONE
             self._zoom_last_dir   = "in"
             self._zoom_last_fired = dist
             return GESTURE_ZOOM_IN
 
         if delta < -20:
-            if self._zoom_last_dir == "in":   # 반대 방향 완전 차단 — 오픈팜 필요
+            if self._zoom_last_dir == "in":
                 return GESTURE_NONE
             self._zoom_last_dir   = "out"
             self._zoom_last_fired = dist
@@ -347,9 +339,7 @@ def _fingers_up(lm) -> tuple[bool, bool, bool, bool]:
     )
 
 def _is_open_palm(lm) -> bool:
-    """손바닥 펴기: 검지~새끼 끝이 모두 PIP(중간 관절) 위에 있어야 인정.
-    MCP 기준보다 엄격 → V자 자세에서 약지·새끼가 살짝 펴져도 오발화 방지.
-    """
+    """손바닥 펴기: 검지~새끼 끝이 모두 PIP(중간 관절) 위에 있어야 인정."""
     return (
         lm[INDEX_TIP].y  < lm[INDEX_PIP].y  and
         lm[MIDDLE_TIP].y < lm[MIDDLE_PIP].y and
@@ -358,11 +348,7 @@ def _is_open_palm(lm) -> bool:
     )
 
 def _thumb_extended(lm) -> bool:
-    """엄지가 옆으로 펴진 L자 상태.
-    조건 1: THUMB_TIP ↔ INDEX_MCP 거리 > 0.13  (임계값 상향, flicker 방지)
-    조건 2: THUMB_TIP.y < INDEX_MCP.y + 0.08   (엄지가 검지 MCP 아래로 접히면 제외)
-    두 조건 모두 만족해야 zoom으로 인정.
-    """
+    """엄지가 옆으로 펴진 L자 상태."""
     dx = lm[THUMB_TIP].x - lm[INDEX_MCP].x
     dy = lm[THUMB_TIP].y - lm[INDEX_MCP].y
     dist = (dx * dx + dy * dy) ** 0.5
@@ -370,15 +356,12 @@ def _thumb_extended(lm) -> bool:
     return dist > 0.13 and thumb_not_tucked
 
 def _is_cursor(lm) -> bool:
-    """검지만 펴기, 엄지는 접힌 상태. (엄지 펴면 줌으로 구분)"""
+    """검지만 펴기, 엄지는 접힌 상태."""
     i, m, r, p = _fingers_up(lm)
     return i and not m and not r and not p and not _thumb_extended(lm)
 
 def _is_drag_pose(lm) -> bool:
-    """검지+중지 V자.
-    약지·새끼 조건 제거 — 자연스러운 V자에서 약지·새끼가 MCP 위로 살짝
-    올라와도 인식되도록. 오픈팜(PIP 기준 전부 UP)과는 _is_open_palm으로 구별.
-    """
+    """검지+중지 V자. 오픈팜과는 _is_open_palm으로 구별."""
     i, m, _, _ = _fingers_up(lm)
     return i and m and not _is_open_palm(lm)
 
@@ -399,11 +382,6 @@ def _is_shaka(lm) -> bool:
     return thumb_up and not i and not m and not r and p
 
 def _is_zoom_entry(lm) -> bool:
-    """
-    검지+엄지 L자 포즈 (줌 진입).
-    검지가 펴져 있고 엄지도 옆으로 펴진 상태, 중지·약지·새끼는 접힘.
-    거리 기반 꼬집기 방식 폐기 → 엄지 펴짐 여부로 cursor와 명확히 구분.
-    """
+    """검지+엄지 L자 포즈 (줌 진입)."""
     i, m, r, p = _fingers_up(lm)
     return i and not m and not r and not p and _thumb_extended(lm)
-
