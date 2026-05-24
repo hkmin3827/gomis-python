@@ -13,7 +13,8 @@
 
 - **완전 로컬 실행** — 인터넷 연결 불필요, 원격 서버 없음
 - **OS 접근 수준** — 일반 사용자 권한만 사용. 커서·클릭은 PyAutoGUI가 Windows `SendInput()` API를 통해 가상 이벤트로 전송 (드라이버·커널 접근 없음)
-- **음성 인식(2단계)** — Whisper 로컬 모델, 외부 전송 없음
+- **음성 인식** — Whisper 로컬 모델, 외부 전송 없음
+- **Claude 연동** — `claude -p` CLI subprocess, Pro 멤버십 활용 (별도 API 과금 없음)
 
 ---
 
@@ -27,8 +28,9 @@
 | 볼륨 제어           | pycaw (Windows COM API)     |
 | 창 전환             | pywin32 (Win32 API)         |
 | UI                  | PyQt5 + pystray             |
-| 음성 인식 (2단계)   | OpenAI Whisper (로컬)       |
-| Claude 연동 (2단계) | Anthropic Python SDK        |
+| 음성 인식 (STT)     | OpenAI Whisper (로컬)       |
+| TTS                 | edge-tts / pyttsx3 (무료)   |
+| Claude 연동         | Claude Code CLI subprocess  |
 
 ---
 
@@ -49,10 +51,19 @@
 | 창 전환(다음) | **손바닥 편 상태**로 오른쪽 스와이프 (웹캠 너비 30% 이동, 상태 무관)              |
 | 창 전환(이전) | **손바닥 편 상태**로 왼쪽 스와이프 (웹캠 너비 30% 이동, 상태 무관)                |
 | 제스처 종료   | 손바닥 펴기 — 손가락 끝이 PIP(중간 관절) 위까지 올라와야 인정                     |
+| 음성 타이핑   | **양손 손날 맞대기** (박수) — 홀수 번째: 녹음 시작 / 짝수 번째: 인식 후 입력       |
+| Claude 대화   | **양손 손가락 모으기** (이탈리아 제스처) — 홀수: 녹음 시작 / 짝수: Claude 응답 TTS |
 
-### 2단계 — Claude 연동
+### 2단계 — Claude 음성 대화 ✅
 
-- 특정 제스처 → Whisper 음성 인식 → Claude API 호출 → 응답 표시
+| 기능 | 설명 |
+|------|------|
+| 음성 타이핑 | **양손 손날 맞대기(박수)** → 녹음 시작 → 다시 박수 → Whisper STT → 현재 창에 텍스트 입력 |
+| Claude 대화 | **양손 손가락 모으기(이탈리아 제스처)** → 녹음 → 다시 모으기 → STT → Claude CLI → TTS 응답 |
+
+- Claude 연동은 `claude -p` CLI subprocess 방식 — Pro 멤버십 활용, 별도 과금 없음
+- TTS: edge-tts(`ko-KR-SunHiNeural`) 우선, 오프라인 시 pyttsx3 폴백
+- 응답 형식: 3문장 이내 구어체, 마크다운 없음 (TTS 청취 최적화)
 
 ### 3단계 — 부가 기능
 
@@ -75,6 +86,8 @@
 | 창 전환(다음) | **손바닥 편 상태** + 오른쪽 스와이프                    | 원샷 (상태 무관, 1.0초 쿨다운)          |
 | 창 전환(이전) | **손바닥 편 상태** + 왼쪽 스와이프                      | 원샷 (상태 무관, 1.0초 쿨다운)          |
 | 제스처 종료   | 손바닥 펴기 (PIP 기준 엄격)                             | 모든 연속 상태 종료                     |
+| 음성 타이핑   | **양손 손날 맞대기** (박수, 2H 필수)                    | 홀수: 녹음 시작 / 짝수: STT 후 입력     |
+| Claude 대화   | **양손 손가락 모으기** (이탈리아 제스처, 2H 필수)       | 홀수: 녹음 시작 / 짝수: Claude → TTS   |
 
 > 레퍼런스 이미지: `docs/motion-capture-img/`
 
@@ -96,8 +109,9 @@ gomis-prj/
 │   ├── volume.py              # 볼륨 조절
 │   └── window_switcher.py     # 창 전환
 ├── voice/
-│   ├── whisper_stt.py         # Whisper 음성 인식
-│   └── claude_client.py       # Anthropic SDK 연동
+│   ├── whisper_stt.py         # Whisper 로컬 음성 인식 (sounddevice + Whisper)
+│   ├── claude_client.py       # Claude Code CLI subprocess 호출
+│   └── tts.py                 # TTS 재생 (edge-tts / pyttsx3 폴백)
 ├── ui/
 │   ├── preview_window.py      # PyQt5 카메라 미리보기 창
 │   ├── tray.py                # 시스템 트레이 아이콘
@@ -165,6 +179,28 @@ gomis-prj/
 ---
 
 ## 변경 이력
+
+### 2026-05-24 — Claude 트리거 정면 각도 제한
+
+| 항목 | 내용 |
+|------|------|
+| **이탈리아 제스처 각도 제한** | `_palm_facing_ratio < 0.38` 이면 핀치 무효 처리 — 측면 오인식 차단 |
+| **실측 보정** | 정면 핀치 ratio 실측값 0.40~0.50 기반으로 임계값 설정 |
+| **CLAUDE.md 보정값 기록** | `_palm_facing_ratio` 범위 표를 `.claude/CLAUDE.md`에 영구 기록 |
+
+---
+
+### 2026-05-24 — 2단계 Claude 음성 대화 연동
+
+| 항목 | 내용 |
+|------|------|
+| **Claude 대화** | 양손 손가락 모으기(이탈리아 제스처) → STT → `claude -p` → TTS |
+| **TTS** | edge-tts(`ko-KR-SunHiNeural`) 우선, pyttsx3 폴백 |
+| **박수 감지 강화** | handedness 이중감지 방지 + 거리 조건 강화 + 중지 끝 거리 추가 |
+| **손날 포즈 강화** | ratio 기준 0.35 → 0.28, 손가락 끝 x 분포 조건 추가 |
+| **코드 정리** | `detect()` 미사용 `frame_w/h` 파라미터 제거 |
+
+---
 
 ### 2026-05-24 — 제스처 인식 전면 개선
 

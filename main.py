@@ -28,6 +28,9 @@ def load_config() -> dict:
 
 def main():
     from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtCore import Qt
+    import PyQt5.QtWebEngineWidgets  # noqa: F401 — QApplication 전에 임포트 필수
+    QApplication.setAttribute(Qt.ApplicationAttribute(4))  # 4 = AA_ShareOpenGLContexts
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # 창 닫아도 트레이에 유지
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -112,12 +115,22 @@ def main():
         claude_trigger = engine.detect_claude_trigger(hands)
         if claude_trigger == GESTURE_CLAUDE_START and claude_state["status"] == "idle" \
                 and voice_state["status"] == "idle":
-            claude_state["status"] = "recording"
-            voice_typer.start()
-            tray.notify("Javis 🤖", "Claude 대화 녹음 중… 다시 모으면 전송")
+            # 인사말 TTS → 완료 후 녹음 시작 (Claude 호출 없음)
+            claude_state["status"] = "greeting"
+            dashboard.set_state("speaking")
+            tray.notify("Javis 🤖", "Gomis 인사 중…")
+
+            def _start_recording():
+                claude_state["status"] = "recording"
+                dashboard.set_state("listening")
+                voice_typer.start()
+                tray.notify("Javis 🎤", "녹음 중… 다시 손 모으면 전송")
+
+            speak_async("고객님 무엇을 도와드릴까요?", on_done=_start_recording)
 
         elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
             claude_state["status"] = "thinking"
+            dashboard.set_state("thinking")
             tray.notify("Javis", "Claude 생각 중…")
 
             def _do_claude():
@@ -125,18 +138,28 @@ def main():
                     text = voice_typer.stop_and_transcribe(auto_enter=False)
                     if not text:
                         tray.notify("Javis", "인식된 텍스트 없음")
+                        claude_state["status"] = "idle"
+                        dashboard.set_state("idle")
                         return
                     tray.notify("Javis 🤖", f"질문: {text[:40]}")
                     response = ask_claude(text)
                     if response:
                         tray.notify("Javis 💬", f"{response[:60]}")
-                        speak_async(response)
+                        dashboard.set_state("speaking")
+
+                        def _after_response():
+                            claude_state["status"] = "idle"
+                            dashboard.set_state("idle")
+
+                        speak_async(response, on_done=_after_response)
                     else:
                         tray.notify("Javis", "Claude 응답 없음")
+                        claude_state["status"] = "idle"
+                        dashboard.set_state("idle")
                 except Exception as e:
                     tray.notify("Javis ❌", f"Claude 오류: {e}")
-                finally:
                     claude_state["status"] = "idle"
+                    dashboard.set_state("idle")
 
             threading.Thread(target=_do_claude, daemon=True).start()
 
@@ -171,10 +194,11 @@ def main():
             disp_gesture = f"[{len(hands)}H] {gesture}"
         return frame, disp_gesture, engine.state, handedness
 
-    from ui import PreviewWindow, TrayIcon
+    from ui import PreviewWindow, TrayIcon, GomisDashboard
 
-    preview = PreviewWindow(run_frame)
-    tray    = TrayIcon()
+    preview   = PreviewWindow(run_frame)
+    tray      = TrayIcon()
+    dashboard = GomisDashboard()
 
     tray.quit_requested.connect(lambda: _shutdown(app, cam, tracker, windows, voice_typer))
     tray.debug_toggled.connect(preview.set_debug)
@@ -182,6 +206,7 @@ def main():
 
     tray.show()
     preview.show()
+    dashboard.show()
     tray.notify("Javis 시작", "손 제스처로 컴퓨터를 제어합니다.")
 
     sys.exit(app.exec_())

@@ -30,9 +30,17 @@ def speak(text: str) -> None:
             log.error(f"TTS 모두 실패: {e2}", exc_info=True)
 
 
-def speak_async(text: str) -> threading.Thread:
-    """백그라운드 스레드에서 TTS 재생. Thread 반환."""
-    t = threading.Thread(target=speak, args=(text,), daemon=True)
+def speak_async(text: str, on_done=None) -> threading.Thread:
+    """백그라운드 스레드에서 TTS 재생. on_done 콜백은 재생 완료 후 호출됨."""
+    def _run():
+        speak(text)
+        if on_done:
+            try:
+                on_done()
+            except Exception as e:
+                log.error(f"speak_async on_done 오류: {e}")
+
+    t = threading.Thread(target=_run, daemon=True)
     t.start()
     return t
 
