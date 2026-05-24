@@ -20,8 +20,10 @@ torch>=2.0.0
 torchaudio>=2.0.0
 ffmpeg-python>=0.2.0
 
-# Claude 연동
-anthropic>=0.25.0
+# Claude 연동 (TTS)
+edge-tts>=6.1.9         # 무료 온라인 TTS (Microsoft Azure 기반)
+pygame>=2.5.0           # mp3 재생
+pyttsx3>=2.90           # 오프라인 TTS 폴백
 
 # UI
 PyQt5>=5.15.10

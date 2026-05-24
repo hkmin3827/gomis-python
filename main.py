@@ -14,7 +14,7 @@ load_dotenv()
 # torch DLL을 Qt보다 먼저 초기화해야 WinError 1114 방지됨
 # Qt가 DLL 검색 경로를 변경하기 전에 c10.dll 등을 로드
 try:
-    import torch  # noqa: F401
+    import torch  # noqa: F401  # type: ignore[import]
 except Exception:
     pass
 
@@ -40,6 +40,7 @@ def main():
         GestureEngine,
         GESTURE_CURSOR, GESTURE_CLICK, GESTURE_DOUBLE_CLICK,
         GESTURE_VOICE_START, GESTURE_VOICE_END,
+        GESTURE_CLAUDE_START, GESTURE_CLAUDE_END,
     )
     from controllers import (
         CursorController, ScrollController,
@@ -47,6 +48,8 @@ def main():
     )
 
     from voice.whisper_stt import VoiceTyper
+    from voice.claude_client import ask_claude
+    from voice.tts import speak_async
 
     cam     = Camera()
     tracker = HandTracker()
@@ -59,30 +62,30 @@ def main():
     zoom        = ZoomController()
     voice_typer = VoiceTyper(model_name="small")
 
-    voice_state = {"status": "idle"}   # "idle" | "recording" | "transcribing"
+    voice_state  = {"status": "idle"}   # "idle" | "recording" | "transcribing"
+    claude_state = {"status": "idle"}   # "idle" | "recording" | "thinking"
 
     cam.open()
 
-    # PreviewWindow 의 타이머가 호출) 
+    # PreviewWindow 의 타이머가 호출
     def run_frame():
         ok, frame = cam.read()
         if not ok:
             return None
 
-        frame_h, w  = frame.shape[:2]
-        hands = tracker.process_all(frame)          # 양손 모두 감지
+        hands      = tracker.process_all(frame)
         both_hands = len(hands) >= 2
-        hand  = hands[0] if hands else None
+        hand       = hands[0] if hands else None
 
-        # 양손이면 단일 손 제스처 엔진에 None 넘겨 상태 리셋
-        gesture = engine.detect(None if both_hands else hand, w, frame_h)
+        gesture = engine.detect(None if both_hands else hand)
 
         for h in hands:
             tracker.draw(frame, h.landmarks)
 
-        # 박수 감지 (음성 타이핑) — 양손일 때만
+        # ── 박수: 음성 타이핑 ──────────────────────────────────────────
         clap = engine.detect_clap(hands)
-        if clap == GESTURE_VOICE_START and voice_state["status"] == "idle":
+        if clap == GESTURE_VOICE_START and voice_state["status"] == "idle" \
+                and claude_state["status"] == "idle":
             voice_state["status"] = "recording"
             voice_typer.start()
             tray.notify("Javis 🎤", "녹음 중… 다시 박수치면 종료")
@@ -105,7 +108,39 @@ def main():
 
             threading.Thread(target=_do_transcribe, daemon=True).start()
 
-        # 단일 손 제스처 — 양손이 잡히면 발화 차단
+        # ── 손가락 모으기: Claude 대화 ────────────────────────────────
+        claude_trigger = engine.detect_claude_trigger(hands)
+        if claude_trigger == GESTURE_CLAUDE_START and claude_state["status"] == "idle" \
+                and voice_state["status"] == "idle":
+            claude_state["status"] = "recording"
+            voice_typer.start()
+            tray.notify("Javis 🤖", "Claude 대화 녹음 중… 다시 모으면 전송")
+
+        elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
+            claude_state["status"] = "thinking"
+            tray.notify("Javis", "Claude 생각 중…")
+
+            def _do_claude():
+                try:
+                    text = voice_typer.stop_and_transcribe(auto_enter=False)
+                    if not text:
+                        tray.notify("Javis", "인식된 텍스트 없음")
+                        return
+                    tray.notify("Javis 🤖", f"질문: {text[:40]}")
+                    response = ask_claude(text)
+                    if response:
+                        tray.notify("Javis 💬", f"{response[:60]}")
+                        speak_async(response)
+                    else:
+                        tray.notify("Javis", "Claude 응답 없음")
+                except Exception as e:
+                    tray.notify("Javis ❌", f"Claude 오류: {e}")
+                finally:
+                    claude_state["status"] = "idle"
+
+            threading.Thread(target=_do_claude, daemon=True).start()
+
+        # ── 단일 손 제스처 — 양손이면 발화 차단 ─────────────────────
         if not both_hands:
             if features.get("cursor") and gesture == GESTURE_CURSOR and hand:
                 cursor.move(hand.landmarks)
@@ -128,8 +163,12 @@ def main():
             zoom.handle(gesture)
 
         handedness = hand.handedness if hand else None
-        disp_gesture = f"[{len(hands)}H] 🎤 {voice_state['status']}" if voice_state["status"] != "idle" \
-                       else f"[{len(hands)}H] {gesture}"
+        if claude_state["status"] != "idle":
+            disp_gesture = f"[{len(hands)}H] 🤖 {claude_state['status']}"
+        elif voice_state["status"] != "idle":
+            disp_gesture = f"[{len(hands)}H] 🎤 {voice_state['status']}"
+        else:
+            disp_gesture = f"[{len(hands)}H] {gesture}"
         return frame, disp_gesture, engine.state, handedness
 
     from ui import PreviewWindow, TrayIcon

@@ -32,6 +32,9 @@ GESTURE_WINDOW_ALT_END         = "window_alt_end"
 GESTURE_VOICE_START = "voice_start"
 GESTURE_VOICE_END   = "voice_end"
 
+GESTURE_CLAUDE_START = "claude_start"
+GESTURE_CLAUDE_END   = "claude_end"
+
 
 class State(Enum):
     IDLE    = "idle"
@@ -90,13 +93,19 @@ class GestureEngine:
         self._clap_together_time: float = 0.0
         self._clap_count:        int   = 0
 
+        # 양손 손가락 모으기 감지 (Claude 대화)
+        self._claude_state:        str   = "open"    # "open" | "pinching"
+        self._claude_apart_time:   float = 0.0
+        self._claude_pinch_time:   float = 0.0
+        self._claude_count:        int   = 0
+
         # 상태 진입 확정
         self._pending_desire: str | None = None
         self._pending_count: int = 0
         self._idle_cooldown_until: float = 0.0
 
 
-    def detect(self, hand: HandResult | None, frame_w: int, frame_h: int) -> str:
+    def detect(self, hand: HandResult | None) -> str:
         if hand is None:
             if self._state == State.ALT_TAB:
                 self._state = State.IDLE
@@ -155,7 +164,7 @@ class GestureEngine:
         if not is_curl:
             self._curl_active = False
 
-        # 손바닥 펴기 → 연속 제스처 종료 
+        # 손바닥 펴기 → 연속 제스처 종료
         if self._state != State.IDLE and _is_open_palm(lm):
             self._state = State.IDLE
             self._reset_tracking()
@@ -175,7 +184,7 @@ class GestureEngine:
         if self._state == State.VOLUME:
             return self._handle_volume(side)
 
-        return self._detect_from_idle(lm, side, frame_w, frame_h)
+        return self._detect_from_idle(lm, side)
 
     @property
     def state(self) -> str:
@@ -183,7 +192,7 @@ class GestureEngine:
 
 
 
-    def _detect_from_idle(self, lm, side, frame_w, frame_h) -> str:
+    def _detect_from_idle(self, lm, side) -> str:
         now = time.time()
 
         if now < self._idle_cooldown_until:
@@ -315,7 +324,7 @@ class GestureEngine:
 
     def detect_clap(self, hands: list) -> str | None:
         """양손 손날 맞대기 감지.
-        조건: 양손 모두 손날 자세 (측면 + 손가락 위) + 두 손목이 같은 높이 + 가까운 거리.
+        조건: 정확히 2H 감지 + 서로 다른 handedness(Left+Right) + 양손 손날 자세 + 가까운 거리.
         홀수 번째 → GESTURE_VOICE_START, 짝수 번째 → GESTURE_VOICE_END.
         """
         now = time.time()
@@ -327,13 +336,29 @@ class GestureEngine:
             return None
 
         h1, h2 = hands[0], hands[1]
+
+        # 반드시 서로 다른 손(Left+Right) — 한 손 이중감지 방지
+        if h1.handedness == h2.handedness:
+            return None
+
         both_blade = _is_blade_pose(h1.landmarks) and _is_blade_pose(h2.landmarks)
 
         w1, w2 = h1.landmarks[WRIST], h2.landmarks[WRIST]
-        x_dist = abs(w1.x - w2.x)   # 두 손목 x 거리 (가까울수록 맞댄 상태)
-        y_diff = abs(w1.y - w2.y)   # 두 손목 y 차이 (작을수록 일직선)
+        x_dist   = abs(w1.x - w2.x)
+        y_diff   = abs(w1.y - w2.y)
 
-        together = both_blade and x_dist < 0.30 and y_diff < 0.12
+        # 중지 끝 거리 — 손날이 실제로 맞닿으면 끝도 가까워야 함
+        t1, t2   = h1.landmarks[MIDDLE_TIP], h2.landmarks[MIDDLE_TIP]
+        tip_xdst = abs(t1.x - t2.x)
+        tip_ydst = abs(t1.y - t2.y)
+
+        together = (
+            both_blade
+            and x_dist   < 0.20   # 손목 x 간격
+            and y_diff   < 0.10   # 손목 y 차이
+            and tip_xdst < 0.20   # 중지 끝 x 간격
+            and tip_ydst < 0.15   # 중지 끝 y 차이
+        )
 
         if together and self._clap_state == "apart":
             if now - self._clap_apart_time > 0.3:
@@ -346,6 +371,41 @@ class GestureEngine:
             if now - self._clap_together_time > 0.15:
                 self._clap_state = "apart"
                 self._clap_apart_time = now
+
+        return None
+
+    def detect_claude_trigger(self, hands: list) -> str | None:
+        """양손 손가락 모으기(이탈리아 제스처) 감지.
+        두 손 모두 5개 손가락 끝이 한 점으로 모이면 감지.
+        홀수 번째 → GESTURE_CLAUDE_START, 짝수 번째 → GESTURE_CLAUDE_END.
+        """
+        now = time.time()
+
+        if len(hands) < 2:
+            if self._claude_state == "pinching":
+                self._claude_state = "open"
+                self._claude_apart_time = now
+            return None
+
+        h1, h2 = hands[0], hands[1]
+
+        # 반드시 서로 다른 손(Left+Right) — 한 손 이중감지 방지
+        if h1.handedness == h2.handedness:
+            return None
+
+        both_pinch = _is_fingertip_pinch(h1.landmarks) and _is_fingertip_pinch(h2.landmarks)
+
+        if both_pinch and self._claude_state == "open":
+            if now - self._claude_apart_time > 0.3:
+                self._claude_state = "pinching"
+                self._claude_pinch_time = now
+                self._claude_count += 1
+                return GESTURE_CLAUDE_START if self._claude_count % 2 == 1 else GESTURE_CLAUDE_END
+
+        elif not both_pinch and self._claude_state == "pinching":
+            if now - self._claude_pinch_time > 0.15:
+                self._claude_state = "open"
+                self._claude_apart_time = now
 
         return None
 
@@ -371,6 +431,7 @@ def _fingers_up(lm) -> tuple[bool, bool, bool, bool]:
     )
 
 def _is_open_palm(lm) -> bool:
+    """손가락 모두 PIP 위로 펴진 상태. 방향 무관 — 클릭 준비, 드래그 판별에 사용."""
     return (
         lm[INDEX_TIP].y  < lm[INDEX_PIP].y  and
         lm[MIDDLE_TIP].y < lm[MIDDLE_PIP].y and
@@ -431,8 +492,19 @@ def _lm_dist(lm, a: int, b: int) -> float:
     return (dx*dx + dy*dy) ** 0.5
 
 def _is_blade_pose(lm) -> bool:
-    """손날 자세: 손이 측면(ratio < 0.35) + 손가락 모두 위를 향함 + 모두 펴짐(PIP 기준)."""
-    if _palm_facing_ratio(lm) >= 0.35:
+    """손날 자세 (3가지 조건 모두 충족):
+    1. ratio < 0.28 — 손이 충분히 측면 (≈70° 이상 기울어짐)
+    2. 손가락 끝 x 분포가 좁음 — 검지끝~새끼끝 x 간격 / 손 기준값 < 0.30 (옆으로 세운 상태)
+    3. 손가락 모두 위를 향해 펴짐
+    """
+    if _palm_facing_ratio(lm) >= 0.28:
+        return False
+    ref = _palm_ref(lm)
+    if ref < 1e-6:
+        return False
+    # 손가락 끝들이 x축으로 좁게 분포 (실제 손날이면 세로로 쌓임)
+    tip_x_spread = abs(lm[INDEX_TIP].x - lm[PINKY_TIP].x)
+    if tip_x_spread / ref >= 0.30:
         return False
     fingers_up_to_wrist = lm[MIDDLE_TIP].y < lm[WRIST].y
     all_extended = (
@@ -495,6 +567,23 @@ def _is_gun_pose(lm, side: str) -> bool:
     ring_curled   = _lm_dist(lm, RING_TIP,   RING_MCP)   < ref * 0.85
     pinky_curled  = _lm_dist(lm, PINKY_TIP,  PINKY_MCP)  < ref * 0.85
     return middle_curled and ring_curled and pinky_curled
+
+def _is_fingertip_pinch(lm) -> bool:
+    """이탈리아 제스처: 5개 손가락 끝이 한 점으로 모임.
+    각 끝점과 centroid 간 최대 거리 / 손 기준값 < 0.40.
+    """
+    tips = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP]
+    ref = _palm_ref(lm)
+    if ref < 1e-6:
+        return False
+    cx = sum(lm[t].x for t in tips) / 5
+    cy = sum(lm[t].y for t in tips) / 5
+    max_dist = max(
+        ((lm[t].x - cx) ** 2 + (lm[t].y - cy) ** 2) ** 0.5
+        for t in tips
+    )
+    return max_dist / ref < 0.40
+
 
 def _is_three_finger_spread(lm) -> bool:
     """줌 진입: 엄지+검지+중지 세손가락이 충분히 벌어진 상태(측면 자세).
