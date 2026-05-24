@@ -571,7 +571,10 @@ def _is_gun_pose(lm, side: str) -> bool:
 def _is_fingertip_pinch(lm) -> bool:
     """이탈리아 제스처: 5개 손가락 끝이 한 점으로 모임.
     각 끝점과 centroid 간 최대 거리 / 손 기준값 < 0.40.
+    손 측면각 20° 이내만 허용 (ratio >= 0.55).
     """
+    if _palm_facing_ratio(lm) < 0.38:
+        return False
     tips = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP]
     ref = _palm_ref(lm)
     if ref < 1e-6:
