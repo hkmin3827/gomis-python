@@ -34,19 +34,22 @@ class VoiceTyper:
         self._chunks: list[np.ndarray] = []
         self._stream = None
         self._lock = threading.Lock()
-        log.info(f"VoiceTyper 초기화 완료 (model={model_name})")
+        self._model_ready = threading.Event()
+
+        # 앱 시작 시 백그라운드에서 미리 로드 → start() 호출 시 대기 없이 즉시 스트림 시작 가능
+        threading.Thread(target=self._preload_model, daemon=True).start()
+        log.info(f"VoiceTyper 초기화 완료 (model={model_name}) — 백그라운드 모델 로드 시작")
 
     # ── 공개 API ──────────────────────────────────────────────────
 
     def start(self) -> None:
-        """녹음 시작. 모델 로드도 여기서 수행 (Qt 메인 스레드 → DLL 안전)."""
+        """녹음 시작. 모델이 아직 로딩 중이면 완료될 때까지 대기 후 즉시 스트림 시작."""
         log.info("녹음 시작 요청")
-        # 모델을 이 시점(Qt 스레드)에서 로드 → 백그라운드 스레드 DLL 오류 방지
-        try:
-            self._load_model()
-        except Exception as e:
-            log.error(f"모델 로드 실패: {e}", exc_info=True)
-            raise
+        if not self._model_ready.is_set():
+            log.info("모델 로딩 대기 중…")
+        self._model_ready.wait()  # 이미 로드됐으면 즉시 통과
+        if self._model is None:
+            raise RuntimeError("Whisper 모델 로드 실패")
 
         import sounddevice as sd
         with self._lock:
@@ -103,6 +106,8 @@ class VoiceTyper:
         return text
 
     def close(self) -> None:
+        # 백그라운드 모델 로드 스레드가 끝날 때까지 대기 (Qt 종료 전 스레드 정리)
+        self._model_ready.wait(timeout=10)
         if self._stream is not None:
             self._stream.stop()
             self._stream.close()
@@ -117,6 +122,14 @@ class VoiceTyper:
         with self._lock:
             if self._recording:
                 self._chunks.append(indata.copy())
+
+    def _preload_model(self):
+        try:
+            self._load_model()
+        except Exception as e:
+            log.error(f"백그라운드 모델 로드 실패: {e}", exc_info=True)
+        finally:
+            self._model_ready.set()  # 실패해도 set → start()가 무한 대기하지 않도록
 
     def _load_model(self):
         if self._model is None:

@@ -24,7 +24,7 @@
         z-index: 10;
       }
       #status {
-        font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+        font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
         font-size: 14px;
         letter-spacing: 4px;
         color: rgba(205, 165, 255, 0.92);
@@ -32,7 +32,7 @@
       }
       #name {
         margin-top: 10px;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 10px;
         letter-spacing: 7px;
         color: rgba(130, 90, 195, 0.48);
@@ -43,7 +43,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: rgba(180, 130, 255, 0.7);
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
         font-size: 12px;
         letter-spacing: 3px;
         z-index: 20;
@@ -52,7 +52,7 @@
   </head>
   <body>
     <div id="loading">GOMIS LOADING . . .</div>
-    <div id="ui" style="display:none">
+    <div id="ui" style="display: none">
       <div id="status">대기 중</div>
       <div id="name">G · O · M · I · S</div>
     </div>
@@ -68,14 +68,13 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
     <script>
-      window.addEventListener('load', function () {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('ui').style.display = 'block';
+      window.addEventListener("load", function () {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("ui").style.display = "block";
         initGomis();
       });
 
       function initGomis() {
-
         /* ============================================================
            1. 기본 Scene / Camera / Renderer 세팅
            ============================================================ */
@@ -96,7 +95,10 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.15;
         renderer.outputEncoding = THREE.sRGBEncoding;
-        document.body.insertBefore(renderer.domElement, document.getElementById('ui'));
+        document.body.insertBefore(
+          renderer.domElement,
+          document.getElementById("ui"),
+        );
 
         /* ============================================================
            2. 파티클용 원형 텍스처 생성 (부드러운 점)
@@ -107,8 +109,12 @@
           canvas.width = canvas.height = size;
           const ctx = canvas.getContext("2d");
           const grad = ctx.createRadialGradient(
-            size / 2, size / 2, 0,
-            size / 2, size / 2, size / 2,
+            size / 2,
+            size / 2,
+            0,
+            size / 2,
+            size / 2,
+            size / 2,
           );
           grad.addColorStop(0.0, "rgba(255,255,255,1)");
           grad.addColorStop(0.3, "rgba(255,255,255,0.6)");
@@ -124,8 +130,8 @@
            3. 색상 팔레트 (보라/라벤더 톤)
            ============================================================ */
         const COLOR_BRIGHT = new THREE.Color(0xe9d5ff); // 밝은 라벤더
-        const COLOR_MID    = new THREE.Color(0xa78bfa); // 메인 바이올렛
-        const COLOR_DEEP   = new THREE.Color(0x6d28d9); // 짙은 퍼플
+        const COLOR_MID = new THREE.Color(0xa78bfa); // 메인 바이올렛
+        const COLOR_DEEP = new THREE.Color(0x6d28d9); // 짙은 퍼플
 
         /* ============================================================
            4. 별 배경 (Starfield)
@@ -136,10 +142,10 @@
           const positions = new Float32Array(count * 3);
 
           for (let i = 0; i < count; i++) {
-            const r     = 60 + Math.random() * 40;
+            const r = 60 + Math.random() * 40;
             const theta = Math.random() * Math.PI * 2;
-            const phi   = Math.acos(2 * Math.random() - 1);
-            positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+            const phi = Math.acos(2 * Math.random() - 1);
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
             positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
             positions[i * 3 + 2] = r * Math.cos(phi);
           }
@@ -162,27 +168,27 @@
            5. 중심 코어 — 빛나는 입자 구체
            ============================================================ */
         function createCoreSphere(radius, count) {
-          const geo       = new THREE.BufferGeometry();
+          const geo = new THREE.BufferGeometry();
           const positions = new Float32Array(count * 3);
-          const colors    = new Float32Array(count * 3);
+          const colors = new Float32Array(count * 3);
 
           for (let i = 0; i < count; i++) {
-            const r     = radius + (Math.random() - 0.5) * 0.18;
+            const r = radius + (Math.random() - 0.5) * 0.18;
             const theta = Math.random() * Math.PI * 2;
-            const phi   = Math.acos(2 * Math.random() - 1);
+            const phi = Math.acos(2 * Math.random() - 1);
 
-            positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
             positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
             positions[i * 3 + 2] = r * Math.cos(phi);
 
             const t = Math.random();
             const c = COLOR_MID.clone().lerp(COLOR_BRIGHT, t * 0.7);
-            colors[i * 3]     = c.r;
+            colors[i * 3] = c.r;
             colors[i * 3 + 1] = c.g;
             colors[i * 3 + 2] = c.b;
           }
           geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-          geo.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
+          geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
           const mat = new THREE.PointsMaterial({
             size: 0.055,
@@ -201,42 +207,67 @@
            6. 스파이크(원뿔) — 파티클로 표현
            ============================================================ */
         function fibonacciDirections(count) {
-          const dirs   = [];
+          const dirs = [];
           const golden = Math.PI * (3 - Math.sqrt(5));
           for (let i = 0; i < count; i++) {
-            const y     = 1 - (i / (count - 1)) * 2;
-            const r     = Math.sqrt(1 - y * y);
+            const y = 1 - (i / (count - 1)) * 2;
+            const r = Math.sqrt(1 - y * y);
             const theta = golden * i;
-            dirs.push(new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r));
+            dirs.push(
+              new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r),
+            );
           }
           return dirs;
         }
 
         function createSpike(length, baseRadius, particleCount) {
-          const geo       = new THREE.BufferGeometry();
+          const geo = new THREE.BufferGeometry();
           const positions = new Float32Array(particleCount * 3);
-          const colors    = new Float32Array(particleCount * 3);
+          const colors = new Float32Array(particleCount * 3);
+
+          // 끝부분이 반구가 되는 비율 (0.0 ~ 1.0)
+          const roundRatio = 0.5; // 위쪽 35%가 둥근 부분
+          const bodyLength = length * (1 - roundRatio);
+          const tipLength = length * roundRatio;
 
           for (let i = 0; i < particleCount; i++) {
-            const h          = Math.sqrt(Math.random());
-            const angle      = Math.random() * Math.PI * 2;
-            const radiusAtH  = baseRadius * (1 - h);
+            const h = 1 - Math.pow(Math.random(), 0.6);
+            const angle = Math.random() * Math.PI * 2;
             const surfaceMix = Math.random() < 0.7 ? 1.0 : Math.random();
 
-            positions[i * 3]     = Math.cos(angle) * radiusAtH * surfaceMix;
-            positions[i * 3 + 1] = h * length;
+            let radiusAtH, yPos;
+
+            if (h < 1 - roundRatio) {
+              // 아래쪽: 곡선 몸통 (기존과 동일)
+              const bodyH = h / (1 - roundRatio); // 0~1로 재정규화
+              const baseShape = Math.pow(1 - bodyH, 1.4);
+              // 몸통 끝 반지름 = 둥근 부분 시작 반지름
+              const neckRadius = baseRadius * Math.pow(roundRatio, 2);
+              radiusAtH = neckRadius + (baseRadius - neckRadius) * baseShape;
+              yPos = h * length;
+            } else {
+              // 위쪽: 반구 (원호로 0에 수렴)
+              const tipH = (h - (1 - roundRatio)) / roundRatio; // 0~1로 재정규화
+              const neckRadius = baseRadius * Math.pow(roundRatio, 2.3);
+              // 반구 공식: sqrt(1 - x^2)
+              radiusAtH = neckRadius * Math.sqrt(1 - tipH * tipH);
+              yPos = bodyLength + tipH * tipLength;
+            }
+
+            positions[i * 3] = Math.cos(angle) * radiusAtH * surfaceMix;
+            positions[i * 3 + 1] = yPos;
             positions[i * 3 + 2] = Math.sin(angle) * radiusAtH * surfaceMix;
 
             const c = COLOR_DEEP.clone().lerp(
               COLOR_BRIGHT,
               Math.min(1, h * 0.9 + Math.random() * 0.25),
             );
-            colors[i * 3]     = c.r;
+            colors[i * 3] = c.r;
             colors[i * 3 + 1] = c.g;
             colors[i * 3 + 2] = c.b;
           }
           geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-          geo.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
+          geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
           const mat = new THREE.PointsMaterial({
             size: 0.045,
@@ -251,14 +282,22 @@
           return new THREE.Points(geo, mat);
         }
 
-        function placeSpikes(count, sphereRadius, length, baseRadius, particlesPerSpike) {
+        function placeSpikes(
+          count,
+          sphereRadius,
+          length,
+          baseRadius,
+          particlesPerSpike,
+        ) {
           const group = new THREE.Group();
-          const dirs  = fibonacciDirections(count);
-          const up    = new THREE.Vector3(0, 1, 0);
+          const dirs = fibonacciDirections(count);
+          const up = new THREE.Vector3(0, 1, 0);
 
           dirs.forEach((dir) => {
             const spike = createSpike(length, baseRadius, particlesPerSpike);
-            spike.position.copy(dir.clone().multiplyScalar(sphereRadius));
+            spike.position.copy(
+              dir.clone().multiplyScalar(sphereRadius * 0.85),
+            );
             spike.quaternion.setFromUnitVectors(up, dir);
             group.add(spike);
           });
@@ -268,19 +307,20 @@
         /* ============================================================
            7. 메인 구조 조립
            ============================================================ */
-        const mandala     = new THREE.Group();
+        const mandala = new THREE.Group();
         const CORE_RADIUS = 1.4;
 
-        const core        = createCoreSphere(CORE_RADIUS, 12000);
+        const core = createCoreSphere(CORE_RADIUS, 10000);
         mandala.add(core);
 
-        const innerBumps  = placeSpikes(60, CORE_RADIUS, 0.28, 0.2,  220);
+        const innerBumps = placeSpikes(20, CORE_RADIUS, 0.6, 0.8, 220);
         mandala.add(innerBumps);
 
-        const midSpikes   = placeSpikes(28, CORE_RADIUS, 0.95, 0.22, 400);
+        // const midSpikes = placeSpikes(8, CORE_RADIUS, 0.7, 0.55, 400);
+        const midSpikes = placeSpikes(0, CORE_RADIUS * 0.9, 0.8, 1, 600);
         mandala.add(midSpikes);
 
-        const largeSpikes = placeSpikes(15, CORE_RADIUS, 2.1,  0.42, 700);
+        const largeSpikes = placeSpikes(18, CORE_RADIUS * 1.1, 0.7, 1, 600);
         mandala.add(largeSpikes);
 
         scene.add(mandala);
@@ -296,7 +336,7 @@
 
         const bloom = new THREE.UnrealBloomPass(
           new THREE.Vector2(window.innerWidth, window.innerHeight),
-          1.5,  // strength
+          1.5, // strength
           0.65, // radius
           0.04, // threshold
         );
@@ -305,18 +345,19 @@
         /* ============================================================
            9. 상태 관리
            ============================================================ */
-        let gomisState = 'idle';
+        let gomisState = "idle";
 
         const stateLabels = {
-          idle:      '대기 중',
-          speaking:  '응답 중',
-          listening: '듣고 있습니다 . . .',
-          thinking:  '생각하는 중 . . .',
+          idle: "대기 중",
+          speaking: "응답 중",
+          listening: "듣고 있습니다 . . .",
+          thinking: "생각하는 중 . . .",
         };
 
         window.setGomisState = function (newState) {
           gomisState = newState;
-          document.getElementById('status').textContent = stateLabels[newState] || newState;
+          document.getElementById("status").textContent =
+            stateLabels[newState] || newState;
         };
 
         /* ============================================================
@@ -326,42 +367,46 @@
 
         function animate() {
           requestAnimationFrame(animate);
-          const t  = clock.getElapsedTime();
+          const t = clock.getElapsedTime();
           const dt = Math.min(clock.getDelta(), 0.05);
 
           // 상태별 회전 속도
           let rotSpeed = 0.0015;
-          if      (gomisState === 'thinking')  rotSpeed = 0.006;
-          else if (gomisState === 'speaking')  rotSpeed = 0.004;
-          else if (gomisState === 'listening') rotSpeed = 0.0028;
+          if (gomisState === "thinking") rotSpeed = 0.006;
+          else if (gomisState === "speaking") rotSpeed = 0.004;
+          else if (gomisState === "listening") rotSpeed = 0.0028;
 
           mandala.rotation.y += rotSpeed;
-          mandala.rotation.x  = Math.sin(t * 0.15) * 0.15;
+          mandala.rotation.x = Math.sin(t * 0.15) * 0.15;
 
           // 상태별 호흡 스케일
           let s = 1.0;
-          if (gomisState === 'idle') {
+          if (gomisState === "idle") {
             s += 0.04 * Math.sin(t * 0.5);
             s += 0.02 * Math.sin(t * 0.3 + 1.0);
-          } else if (gomisState === 'speaking') {
-            s += 0.10 * Math.abs(Math.sin(t * 2.2));
+          } else if (gomisState === "speaking") {
+            s += 0.2 * Math.abs(Math.sin(t * 2.2));
             s += 0.06 * Math.sin(t * 1.3 + 0.7);
             s += 0.03 * Math.sin(t * 3.8 + 1.4);
-          } else if (gomisState === 'listening') {
+          } else if (gomisState === "listening") {
             s += 0.07 * Math.sin(t * 1.8);
             s += 0.03 * Math.sin(t * 3.5 + 0.9);
-          } else if (gomisState === 'thinking') {
+          } else if (gomisState === "thinking") {
             s += 0.03 * Math.sin(t * 5.0);
             s += 0.02 * Math.sin(t * 8.1 + 1.0);
           }
           mandala.scale.setScalar(Math.max(0.7, s));
 
+          const spikeBoost = 1 + (s - 1) * 1.0;
+          largeSpikes.scale.setScalar(Math.max(0.8, spikeBoost));
+          midSpikes.scale.setScalar(Math.max(0.8, spikeBoost));
+
           // 상태별 bloom 강도
-          if (gomisState === 'speaking') {
+          if (gomisState === "speaking") {
             bloom.strength = 1.9 + 0.4 * Math.abs(Math.sin(t * 2.5));
-          } else if (gomisState === 'listening') {
+          } else if (gomisState === "listening") {
             bloom.strength = 1.65 + 0.15 * Math.sin(t * 1.2);
-          } else if (gomisState === 'thinking') {
+          } else if (gomisState === "thinking") {
             bloom.strength = 1.55 + 0.3 * Math.abs(Math.sin(t * 3.0));
           } else {
             bloom.strength = 1.45 + Math.sin(t * 0.8) * 0.12;

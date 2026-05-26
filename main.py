@@ -126,7 +126,7 @@ def main():
                 voice_typer.start()
                 tray.notify("Javis 🎤", "녹음 중… 다시 손 모으면 전송")
 
-            speak_async("고객님 무엇을 도와드릴까요?", on_done=_start_recording)
+            speak_async("네 무엇을 도와드릴까요?", on_done=_start_recording)
 
         elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
             claude_state["status"] = "thinking"
