@@ -29,6 +29,7 @@
         letter-spacing: 4px;
         color: rgba(205, 165, 255, 0.92);
         text-shadow: 0 0 22px rgba(170, 100, 255, 0.85);
+        transition: opacity 0.35s ease;
       }
       #name {
         margin-top: 10px;
@@ -248,7 +249,7 @@
             } else {
               // 위쪽: 반구 (원호로 0에 수렴)
               const tipH = (h - (1 - roundRatio)) / roundRatio; // 0~1로 재정규화
-              const neckRadius = baseRadius * Math.pow(roundRatio, 2.3);
+              const neckRadius = baseRadius * Math.pow(roundRatio, 0.9);
               // 반구 공식: sqrt(1 - x^2)
               radiusAtH = neckRadius * Math.sqrt(1 - tipH * tipH);
               yPos = bodyLength + tipH * tipLength;
@@ -355,9 +356,14 @@
         };
 
         window.setGomisState = function (newState) {
+          if (gomisState === newState) return;
           gomisState = newState;
-          document.getElementById("status").textContent =
-            stateLabels[newState] || newState;
+          const el = document.getElementById("status");
+          el.style.opacity = "0";
+          setTimeout(() => {
+            el.textContent = stateLabels[newState] || newState;
+            el.style.opacity = "1";
+          }, 350);
         };
 
         /* ============================================================
@@ -365,52 +371,59 @@
            ============================================================ */
         const clock = new THREE.Clock();
 
+        // 보간용 현재값 (상태 전환 시 부드럽게 변화)
+        let curRotSpeed = 0.0015;
+        let curScale = 1.0;
+        let curBloom = 1.45;
+
         function animate() {
           requestAnimationFrame(animate);
           const t = clock.getElapsedTime();
-          const dt = Math.min(clock.getDelta(), 0.05);
 
-          // 상태별 회전 속도
-          let rotSpeed = 0.0015;
-          if (gomisState === "thinking") rotSpeed = 0.006;
-          else if (gomisState === "speaking") rotSpeed = 0.004;
-          else if (gomisState === "listening") rotSpeed = 0.0028;
+          // ── 목표 회전 속도 계산 ──
+          let targetRotSpeed = 0.0015;
+          if (gomisState === "thinking") targetRotSpeed = 0.006;
+          else if (gomisState === "speaking") targetRotSpeed = 0.004;
+          else if (gomisState === "listening") targetRotSpeed = 0.0028;
 
-          mandala.rotation.y += rotSpeed;
+          curRotSpeed += (targetRotSpeed - curRotSpeed) * 0.05;
+          mandala.rotation.y += curRotSpeed;
           mandala.rotation.x = Math.sin(t * 0.15) * 0.15;
 
-          // 상태별 호흡 스케일
-          let s = 1.0;
+          // ── 목표 스케일 계산 (기존 sin 공식 유지) ──
+          let targetScale = 1.0;
           if (gomisState === "idle") {
-            s += 0.04 * Math.sin(t * 0.5);
-            s += 0.02 * Math.sin(t * 0.3 + 1.0);
+            targetScale += 0.04 * Math.sin(t * 0.5);
+            targetScale += 0.02 * Math.sin(t * 0.3 + 1.0);
           } else if (gomisState === "speaking") {
-            s += 0.2 * Math.abs(Math.sin(t * 2.2));
-            s += 0.06 * Math.sin(t * 1.3 + 0.7);
-            s += 0.03 * Math.sin(t * 3.8 + 1.4);
+            targetScale += 0.2 * Math.abs(Math.sin(t * 2.2));
+            targetScale += 0.06 * Math.sin(t * 1.3 + 0.7);
+            targetScale += 0.03 * Math.sin(t * 3.8 + 1.4);
           } else if (gomisState === "listening") {
-            s += 0.07 * Math.sin(t * 1.8);
-            s += 0.03 * Math.sin(t * 3.5 + 0.9);
+            targetScale += 0.07 * Math.sin(t * 1.8);
+            targetScale += 0.03 * Math.sin(t * 3.5 + 0.9);
           } else if (gomisState === "thinking") {
-            s += 0.03 * Math.sin(t * 5.0);
-            s += 0.02 * Math.sin(t * 8.1 + 1.0);
+            targetScale += 0.03 * Math.sin(t * 5.0);
+            targetScale += 0.02 * Math.sin(t * 8.1 + 1.0);
           }
-          mandala.scale.setScalar(Math.max(0.7, s));
+          curScale += (Math.max(0.7, targetScale) - curScale) * 0.06;
+          mandala.scale.setScalar(curScale);
 
-          const spikeBoost = 1 + (s - 1) * 1.0;
+          const spikeBoost = 1 + (curScale - 1) * 1.8;
           largeSpikes.scale.setScalar(Math.max(0.8, spikeBoost));
           midSpikes.scale.setScalar(Math.max(0.8, spikeBoost));
 
-          // 상태별 bloom 강도
+          // ── 목표 bloom 강도 계산 ──
+          let targetBloom = 1.45 + Math.sin(t * 0.8) * 0.12;
           if (gomisState === "speaking") {
-            bloom.strength = 1.9 + 0.4 * Math.abs(Math.sin(t * 2.5));
+            targetBloom = 1.9 + 0.4 * Math.abs(Math.sin(t * 2.5));
           } else if (gomisState === "listening") {
-            bloom.strength = 1.65 + 0.15 * Math.sin(t * 1.2);
+            targetBloom = 1.65 + 0.15 * Math.sin(t * 1.2);
           } else if (gomisState === "thinking") {
-            bloom.strength = 1.55 + 0.3 * Math.abs(Math.sin(t * 3.0));
-          } else {
-            bloom.strength = 1.45 + Math.sin(t * 0.8) * 0.12;
+            targetBloom = 1.55 + 0.3 * Math.abs(Math.sin(t * 3.0));
           }
+          curBloom += (targetBloom - curBloom) * 0.04;
+          bloom.strength = curBloom;
 
           // 별 배경 아주 천천히 회전
           stars.rotation.y = t * 0.008;
