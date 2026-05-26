@@ -44,6 +44,7 @@ def main():
         GESTURE_CURSOR, GESTURE_CLICK, GESTURE_DOUBLE_CLICK,
         GESTURE_VOICE_START, GESTURE_VOICE_END,
         GESTURE_CLAUDE_START, GESTURE_CLAUDE_END,
+        GESTURE_LOCK_TOGGLE,
     )
     from controllers import (
         CursorController, ScrollController,
@@ -67,6 +68,7 @@ def main():
 
     voice_state  = {"status": "idle"}   # "idle" | "recording" | "transcribing"
     claude_state = {"status": "idle"}   # "idle" | "recording" | "thinking"
+    lock_state   = {"locked": False}
 
     cam.open()
 
@@ -84,6 +86,21 @@ def main():
 
         for h in hands:
             tracker.draw(frame, h.landmarks)
+
+        # ── 잠금 토글 감지 (잠금 중에도 항상 체크) ───────────────────
+        lock_trigger = engine.detect_lock(hands)
+        if lock_trigger == GESTURE_LOCK_TOGGLE:
+            lock_state["locked"] = not lock_state["locked"]
+            if lock_state["locked"]:
+                dashboard.set_state("locked")
+                tray.notify("Javis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
+            else:
+                dashboard.set_state("idle")
+                tray.notify("Javis 🔓", "잠금 모드 OFF")
+
+        # ── 잠금 상태이면 이하 모든 제스처 처리 건너뜀 ──────────────
+        if lock_state["locked"]:
+            return frame, "[🔒 잠금 모드]", engine.state, hand.handedness if hand else None
 
         # ── 박수: 음성 타이핑 ──────────────────────────────────────────
         clap = engine.detect_clap(hands)

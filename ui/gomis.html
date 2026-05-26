@@ -353,6 +353,7 @@
           speaking: "응답 중",
           listening: "듣고 있습니다 . . .",
           thinking: "생각하는 중 . . .",
+          locked: "🔒 잠금 모드",
         };
 
         window.setGomisState = function (newState) {
@@ -382,8 +383,9 @@
 
           // ── 목표 회전 속도 계산 ──
           let targetRotSpeed = 0.0015;
-          if (gomisState === "thinking") targetRotSpeed = 0.006;
-          else if (gomisState === "speaking") targetRotSpeed = 0.004;
+          if (gomisState === "locked")         targetRotSpeed = 0.0003;
+          else if (gomisState === "thinking")  targetRotSpeed = 0.006;
+          else if (gomisState === "speaking")  targetRotSpeed = 0.004;
           else if (gomisState === "listening") targetRotSpeed = 0.0028;
 
           curRotSpeed += (targetRotSpeed - curRotSpeed) * 0.05;
@@ -392,7 +394,9 @@
 
           // ── 목표 스케일 계산 (기존 sin 공식 유지) ──
           let targetScale = 1.0;
-          if (gomisState === "idle") {
+          if (gomisState === "locked") {
+            targetScale += 0.015 * Math.sin(t * 0.25);
+          } else if (gomisState === "idle") {
             targetScale += 0.04 * Math.sin(t * 0.5);
             targetScale += 0.02 * Math.sin(t * 0.3 + 1.0);
           } else if (gomisState === "speaking") {
@@ -415,7 +419,9 @@
 
           // ── 목표 bloom 강도 계산 ──
           let targetBloom = 1.45 + Math.sin(t * 0.8) * 0.12;
-          if (gomisState === "speaking") {
+          if (gomisState === "locked") {
+            targetBloom = 0.9 + 0.08 * Math.sin(t * 0.3);
+          } else if (gomisState === "speaking") {
             targetBloom = 1.9 + 0.4 * Math.abs(Math.sin(t * 2.5));
           } else if (gomisState === "listening") {
             targetBloom = 1.65 + 0.15 * Math.sin(t * 1.2);

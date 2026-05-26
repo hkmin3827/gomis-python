@@ -35,6 +35,8 @@ GESTURE_VOICE_END   = "voice_end"
 GESTURE_CLAUDE_START = "claude_start"
 GESTURE_CLAUDE_END   = "claude_end"
 
+GESTURE_LOCK_TOGGLE  = "lock_toggle"
+
 
 class State(Enum):
     IDLE    = "idle"
@@ -48,6 +50,7 @@ class State(Enum):
 class GestureEngine:
     _CONFIRM_FRAMES = 3
     _IDLE_COOLDOWN  = 0.5
+    _LOCK_HOLD_SEC  = 1.5
 
     _ZOOM_DELTA      = 0.03   # 기준 거리에서 이 이상 벌어지거나 좁혀지면 연속 발화
     _DRAG_THRESHOLD  = 0.05   # 기준 Y에서 이 이상 벗어나면 연속 발화 (정규화 좌표)
@@ -98,6 +101,10 @@ class GestureEngine:
         self._claude_apart_time:   float = 0.0
         self._claude_pinch_time:   float = 0.0
         self._claude_count:        int   = 0
+
+        # 양손 엄지 Up 홀드 감지 (잠금 토글)
+        self._lock_hold_start: float | None = None
+        self._lock_grace_until: float = 0.0
 
         # 상태 진입 확정
         self._pending_desire: str | None = None
@@ -409,6 +416,47 @@ class GestureEngine:
 
         return None
 
+    def detect_lock(self, hands: list) -> str | None:
+        """양손 엄지 Up 1.5초 홀드 → GESTURE_LOCK_TOGGLE 반환.
+        홀드 완료 후 손을 떼야 다음 토글 가능.
+        """
+        import logging
+        now = time.time()
+
+        if len(hands) < 2:
+            self._lock_hold_start = None
+            return None
+
+        h1, h2 = hands[0], hands[1]
+
+        if h1.handedness == h2.handedness:
+            logging.debug(f"[lock] 양손 same handedness: {h1.handedness} — 무시")
+            self._lock_hold_start = None
+            return None
+
+        t1 = _is_thumbs_up(h1.landmarks)
+        t2 = _is_thumbs_up(h2.landmarks)
+        logging.debug(f"[lock] h1={h1.handedness} thumbs_up={t1}  h2={h2.handedness} thumbs_up={t2}")
+
+        both_thumbs_up = t1 and t2
+
+        if both_thumbs_up:
+            self._lock_grace_until = now + 0.3  # grace period 갱신
+            if self._lock_hold_start is None:
+                self._lock_hold_start = now
+                logging.debug("[lock] 홀드 시작")
+            else:
+                elapsed = now - self._lock_hold_start
+                logging.debug(f"[lock] 홀드 중 {elapsed:.2f}s / {self._LOCK_HOLD_SEC}s")
+                if elapsed >= self._LOCK_HOLD_SEC:
+                    self._lock_hold_start = now + 9999
+                    return GESTURE_LOCK_TOGGLE
+        elif now > self._lock_grace_until:
+            # grace period(0.3초) 지난 뒤에만 리셋
+            self._lock_hold_start = None
+
+        return None
+
     def _reset_tracking(self):
         self._drag_baseline_y  = None
         self._zoom_baseline    = None
@@ -587,6 +635,22 @@ def _is_fingertip_pinch(lm) -> bool:
     )
     return max_dist / ref < 0.40
 
+
+def _is_thumbs_up(lm) -> bool:
+    """엄지만 펴고 나머지 4손가락 접힌 상태.
+    거리 기반 — y좌표 불사용, 손 수직/수평 기울기에 무관.
+    """
+    ref = _palm_ref(lm)
+    if ref < 1e-6:
+        return False
+    # 엄지: 손목에서 충분히 멀리 펴져 있음 (1.5 → 1.2로 완화)
+    thumb_extended = _lm_dist(lm, THUMB_TIP, WRIST) > ref * 1.2
+    # 나머지 4손가락: TIP~MCP 거리 짧으면 접힘 (0.85 → 1.0으로 완화)
+    index_curled  = _lm_dist(lm, INDEX_TIP,  INDEX_MCP)  < ref * 1.0
+    middle_curled = _lm_dist(lm, MIDDLE_TIP, MIDDLE_MCP) < ref * 1.0
+    ring_curled   = _lm_dist(lm, RING_TIP,   RING_MCP)   < ref * 1.0
+    pinky_curled  = _lm_dist(lm, PINKY_TIP,  PINKY_MCP)  < ref * 1.0
+    return thumb_extended and index_curled and middle_curled and ring_curled and pinky_curled
 
 def _is_three_finger_spread(lm) -> bool:
     """줌 진입: 엄지+검지+중지 세손가락이 충분히 벌어진 상태(측면 자세).
