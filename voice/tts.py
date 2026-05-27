@@ -66,16 +66,26 @@ def _speak_edge_tts(text: str) -> None:
     asyncio.run(_run())
 
 
+_mixer_ready = False
+
+
+def _ensure_mixer() -> None:
+    global _mixer_ready
+    if not _mixer_ready:
+        import pygame
+        pygame.mixer.init()
+        _mixer_ready = True
+
+
 def _play_mp3(path: str) -> None:
-    """pygame으로 mp3 재생 (블로킹)."""
+    """pygame으로 mp3 재생 (블로킹). mixer는 앱 수명 동안 1회만 초기화."""
     import pygame
-    pygame.mixer.init()
+    _ensure_mixer()
     pygame.mixer.music.load(path)
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():
         time.sleep(0.05)
     pygame.mixer.music.stop()
-    pygame.mixer.quit()
 
 
 def _speak_pyttsx3(text: str) -> None:

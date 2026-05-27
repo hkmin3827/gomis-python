@@ -75,7 +75,7 @@ class GestureEngine:
 
         # 클릭
         self._last_click_time  = 0.0
-        self._double_click_gap = 0.4
+        self._double_click_gap = 0.8
         self._curl_active      = False
         self._palm_was_open    = False
 

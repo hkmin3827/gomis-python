@@ -46,7 +46,7 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
                 self._respond(404, '{"error":"not found"}')
 
         def do_POST(self):
-            length = int(self.headers.get("Content-Length", 0))
+            length = min(int(self.headers.get("Content-Length", 0)), 4096)
             body   = self.rfile.read(length)
             try:
                 payload = json.loads(body) if body else {}
