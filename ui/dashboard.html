@@ -2062,7 +2062,13 @@
         const valEl  = document.getElementById(def.valId);
         slider.value = value;
         updateSliderTrack(slider);
-        valEl.innerHTML = value + (def.unit ? `<span style="font-size:9px;font-weight:400">${def.unit}</span>` : "");
+        valEl.textContent = Number(value);
+        if (def.unit) {
+          const u = document.createElement("span");
+          u.style.cssText = "font-size:9px;font-weight:400";
+          u.textContent = def.unit;
+          valEl.appendChild(u);
+        }
       }
 
       async function openSettings() {
@@ -2117,7 +2123,13 @@
         const valEl  = document.getElementById(def.valId);
         slider.addEventListener("input", () => {
           updateSliderTrack(slider);
-          valEl.innerHTML = slider.value + (def.unit ? `<span style="font-size:9px;font-weight:400">${def.unit}</span>` : "");
+          valEl.textContent = Number(slider.value);
+          if (def.unit) {
+            const u = document.createElement("span");
+            u.style.cssText = "font-size:9px;font-weight:400";
+            u.textContent = def.unit;
+            valEl.appendChild(u);
+          }
         });
       });
 
