@@ -17,7 +17,8 @@ _MARGIN_BOTTOM = 0.30
 
 class CursorController:
     def __init__(self):
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["gesture"]
         self._smoothing = cfg["cursor_smoothing"]
         self._screen_w, self._screen_h = pyautogui.size()
         self._prev_x: float | None = None

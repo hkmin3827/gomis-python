@@ -30,7 +30,8 @@ log = logging.getLogger("voice")
 class VoiceTyper:
     """녹음 시작/종료 후 Whisper로 텍스트 변환 → 현재 포커스 창에 타이핑."""
 
-    SAMPLE_RATE = 16_000
+    SAMPLE_RATE    = 16_000
+    MAX_RECORD_SEC = 60  # 최대 녹음 시간 — 초과분은 자동 무시
 
     def __init__(self, model_name: str = "small"):
         self._model_name = model_name
@@ -126,7 +127,9 @@ class VoiceTyper:
             log.warning(f"오디오 콜백 status: {status}")
         with self._lock:
             if self._recording:
-                self._chunks.append(indata.copy())
+                total = sum(len(c) for c in self._chunks)
+                if total < self.SAMPLE_RATE * self.MAX_RECORD_SEC:
+                    self._chunks.append(indata.copy())
 
     def _preload_model(self):
         try:

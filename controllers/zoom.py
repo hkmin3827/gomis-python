@@ -58,7 +58,8 @@ def _ctrl_scroll(delta: int):
 
 class ZoomController:
     def __init__(self):
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["gesture"]
         self._default_delta = cfg.get("zoom_delta", 20)
         self._settings: dict | None = None
 

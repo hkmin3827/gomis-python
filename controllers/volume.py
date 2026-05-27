@@ -14,7 +14,8 @@ class VolumeController:
         dev = getattr(devices, "_dev", devices)
         interface = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self._volume = cast(interface, POINTER(IAudioEndpointVolume))
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["gesture"]
         self._default_step = cfg.get("volume_step", 3) / 100.0
         self._settings: dict | None = None
 

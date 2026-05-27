@@ -7,7 +7,8 @@ CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
 
 class Camera:
     def __init__(self):
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["camera"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["camera"]
         self.index = cfg["index"]
         self.width = cfg["width"]
         self.height = cfg["height"]

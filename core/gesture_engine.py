@@ -56,7 +56,8 @@ class GestureEngine:
     _DRAG_THRESHOLD  = 0.05   # 기준 Y에서 이 이상 벗어나면 연속 발화 (정규화 좌표)
 
     def __init__(self, tracker: HandTracker):
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["gesture"]
         self._click_threshold = cfg["click_threshold"]
         self._tracker = tracker
 
@@ -571,19 +572,6 @@ def _palm_facing_ratio(lm) -> float:
     ref = _palm_ref(lm)
     return width / ref if ref > 1e-6 else 0.0
 
-def _three_finger_dist(lm) -> float:
-    """엄지+검지+중지 끝 3쌍 중 최대 거리 (삼각형 외접원 지름 근사)."""
-    pts = [lm[THUMB_TIP], lm[INDEX_TIP], lm[MIDDLE_TIP]]
-    max_d = 0.0
-    for i in range(3):
-        for j in range(i + 1, 3):
-            dx = pts[i].x - pts[j].x
-            dy = pts[i].y - pts[j].y
-            d  = (dx*dx + dy*dy) ** 0.5
-            if d > max_d:
-                max_d = d
-    return max_d
-
 
 def _is_thumb_extended(lm, side: str) -> bool:
     """엄지 폄 여부 — 웹캠 x축 기준.
@@ -651,24 +639,3 @@ def _is_thumbs_up(lm) -> bool:
     ring_curled   = _lm_dist(lm, RING_TIP,   RING_MCP)   < ref * 1.0
     pinky_curled  = _lm_dist(lm, PINKY_TIP,  PINKY_MCP)  < ref * 1.0
     return thumb_extended and index_curled and middle_curled and ring_curled and pinky_curled
-
-def _is_three_finger_spread(lm) -> bool:
-    """줌 진입: 엄지+검지+중지 세손가락이 충분히 벌어진 상태(측면 자세).
-    - 세 끝점 최대 거리 / 손 기준값 >= 0.70 (충분한 펼침)
-    - 검지·중지 끝이 PIP 위
-    - 엄지가 INDEX_MCP에서 멀리 펴짐
-    - 약지·새끼는 PIP 아래 (오픈팜과 구분)
-    """
-    ref = _palm_ref(lm)
-    if ref < 1e-6:
-        return False
-    if _three_finger_dist(lm) / ref < 0.70:
-        return False
-    index_up   = lm[INDEX_TIP].y  < lm[INDEX_PIP].y
-    middle_up  = lm[MIDDLE_TIP].y < lm[MIDDLE_PIP].y
-    ring_down  = lm[RING_TIP].y   > lm[RING_PIP].y
-    pinky_down = lm[PINKY_TIP].y  > lm[PINKY_PIP].y
-    dx = lm[THUMB_TIP].x - lm[INDEX_MCP].x
-    dy = lm[THUMB_TIP].y - lm[INDEX_MCP].y
-    thumb_far  = (dx*dx + dy*dy) ** 0.5 > 0.13
-    return index_up and middle_up and thumb_far and ring_down and pinky_down

@@ -2,6 +2,7 @@ import sys
 import json
 import signal
 import threading
+import time
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -177,13 +178,33 @@ def main():
 
     cam.open()
 
+    # ── 백그라운드 캡처/추론 스레드 ──────────────────────────────────
+    # cam.read() + MediaPipe 추론을 Qt 타이머와 분리.
+    # Qt 타이머는 항상 최신 결과만 읽어 일정한 33ms 간격 유지 → 커서 끊김 제거.
+    _cap_state = {"frame": None, "hands": []}
+    _cap_lock  = threading.Lock()
+
+    def _bg_capture():
+        while True:
+            ok, fr = cam.read()
+            if not ok:
+                time.sleep(0.01)
+                continue
+            hs = tracker.process_all(fr)
+            with _cap_lock:
+                _cap_state["frame"] = fr
+                _cap_state["hands"] = hs
+
+    threading.Thread(target=_bg_capture, daemon=True).start()
+
     # PreviewWindow 의 타이머가 호출
     def run_frame():
-        ok, frame = cam.read()
-        if not ok:
+        with _cap_lock:
+            frame = _cap_state["frame"]
+            hands = list(_cap_state["hands"])
+        if frame is None:
             return None
 
-        hands      = tracker.process_all(frame)
         both_hands = len(hands) >= 2
         hand       = hands[0] if hands else None
 

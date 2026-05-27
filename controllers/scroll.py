@@ -10,7 +10,8 @@ pyautogui.PAUSE = 0
 
 class ScrollController:
     def __init__(self):
-        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)["gesture"]
         self._default_speed = cfg.get("scroll_speed", 40)
         self._settings: dict | None = None
 
