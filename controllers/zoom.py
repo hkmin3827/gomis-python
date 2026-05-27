@@ -1,13 +1,15 @@
 import ctypes
+import json
+from pathlib import Path
 from core.gesture_engine import GESTURE_ZOOM_IN, GESTURE_ZOOM_OUT
 
-# Windows SendInput 구조체 정의
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
+
 _INPUT_KEYBOARD = 1
 _INPUT_MOUSE    = 0
 _KEYEVENTF_KEYUP      = 0x0002
 _MOUSEEVENTF_WHEEL    = 0x0800
 _VK_CONTROL           = 0x11
-_WHEEL_DELTA          = 20
 
 
 class _KEYBDINPUT(ctypes.Structure):
@@ -55,9 +57,17 @@ def _ctrl_scroll(delta: int):
 
 
 class ZoomController:
+    def __init__(self):
+        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        self._default_delta = cfg.get("zoom_delta", 20)
+        self._settings: dict | None = None
+
+    def set_settings(self, settings: dict):
+        self._settings = settings
+
     def handle(self, gesture: str):
-        """Ctrl+휠(SendInput)로 줌 인/아웃 — 브라우저·탐색기·Office 범용."""
+        delta = self._settings["zoom_delta"] if self._settings else self._default_delta
         if gesture == GESTURE_ZOOM_IN:
-            _ctrl_scroll(_WHEEL_DELTA)
+            _ctrl_scroll(delta)
         elif gesture == GESTURE_ZOOM_OUT:
-            _ctrl_scroll(-_WHEEL_DELTA)
+            _ctrl_scroll(-delta)

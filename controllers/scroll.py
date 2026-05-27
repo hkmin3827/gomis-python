@@ -11,10 +11,15 @@ pyautogui.PAUSE = 0
 class ScrollController:
     def __init__(self):
         cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
-        self._speed = cfg["scroll_speed"]
+        self._default_speed = cfg.get("scroll_speed", 40)
+        self._settings: dict | None = None
+
+    def set_settings(self, settings: dict):
+        self._settings = settings
 
     def handle(self, gesture: str):
+        speed = self._settings["scroll_speed"] if self._settings else self._default_speed
         if gesture == GESTURE_DRAG_UP:
-            pyautogui.scroll(self._speed)
+            pyautogui.scroll(speed)
         elif gesture == GESTURE_DRAG_DOWN:
-            pyautogui.scroll(-self._speed)
+            pyautogui.scroll(-speed)

@@ -1,4 +1,5 @@
 {
+  "user_name": "",
   "camera": {
     "index": 0,
     "width": 640,
@@ -9,7 +10,9 @@
     "sensitivity": 0.5,
     "cursor_smoothing": 0.7,
     "click_threshold": 0.04,
-    "scroll_speed": 40
+    "scroll_speed": 40,
+    "volume_step": 3,
+    "zoom_delta": 20
   },
   "whisper": {
     "model": "base",

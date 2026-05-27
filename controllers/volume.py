@@ -1,9 +1,11 @@
+import json
+from pathlib import Path
 from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from core.gesture_engine import GESTURE_VOLUME_UP, GESTURE_VOLUME_DOWN
 
-STEP = 0.03     # 한 번 발화 시 볼륨 변화량 (0.0~1.0 기준, 약 3%)
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
 
 
 class VolumeController:
@@ -12,17 +14,23 @@ class VolumeController:
         dev = getattr(devices, "_dev", devices)
         interface = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self._volume = cast(interface, POINTER(IAudioEndpointVolume))
+        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))["gesture"]
+        self._default_step = cfg.get("volume_step", 3) / 100.0
+        self._settings: dict | None = None
+
+    def set_settings(self, settings: dict):
+        self._settings = settings
 
     def handle(self, gesture: str):
         if gesture not in (GESTURE_VOLUME_UP, GESTURE_VOLUME_DOWN):
             return
+        step = (self._settings["volume_step"] / 100.0) if self._settings else self._default_step
         current = self._volume.GetMasterVolumeLevelScalar()
         if gesture == GESTURE_VOLUME_UP:
-            self._volume.SetMasterVolumeLevelScalar(min(1.0, current + STEP), None)
+            self._volume.SetMasterVolumeLevelScalar(min(1.0, current + step), None)
         else:
-            self._volume.SetMasterVolumeLevelScalar(max(0.0, current - STEP), None)
+            self._volume.SetMasterVolumeLevelScalar(max(0.0, current - step), None)
 
     @property
     def level(self) -> float:
-        """현재 볼륨 (0.0~1.0)."""
         return self._volume.GetMasterVolumeLevelScalar()

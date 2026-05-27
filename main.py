@@ -1,15 +1,9 @@
-"""
-Javis Motion Control — 엔트리포인트
-"""
-
 import sys
 import json
 import signal
 import threading
 from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # torch DLL을 Qt보다 먼저 초기화해야 WinError 1114 방지됨
 # Qt가 DLL 검색 경로를 변경하기 전에 c10.dll 등을 로드
@@ -26,6 +20,96 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
+    """dashboard.html ↔ Python 브리지 HTTP 핸들러 팩토리."""
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *a): pass  # 콘솔 로그 억제
+
+        def _respond(self, code: int, body: str = ""):
+            data = body.encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_OPTIONS(self):  # CORS preflight
+            self._respond(204)
+
+        def do_GET(self):
+            if self.path == "/get-settings":
+                self._respond(200, json.dumps(live_settings))
+            else:
+                self._respond(404, '{"error":"not found"}')
+
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            body   = self.rfile.read(length)
+            try:
+                payload = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                payload = {}
+
+            if self.path == "/start":
+                app_state["running"] = True
+                self._respond(200, '{"ok":true}')
+
+            elif self.path == "/stop":
+                app_state["running"] = False
+                self._respond(200, '{"ok":true}')
+
+            elif self.path == "/set-name":
+                name = str(payload.get("name", "")).strip()
+                try:
+                    cfg = json.loads(config_path.read_text(encoding="utf-8"))
+                    cfg["user_name"] = name
+                    config_path.write_text(
+                        json.dumps(cfg, ensure_ascii=False, indent=2),
+                        encoding="utf-8"
+                    )
+                    app_state["user_name"] = name
+                    self._respond(200, '{"ok":true}')
+                except Exception as e:
+                    self._respond(500, f'{{"error":"{e}"}}')
+
+            elif self.path == "/save-settings":
+                int_keys   = ("scroll_speed", "zoom_delta")
+                float_keys = ("volume_step",)
+                for k in int_keys:
+                    if k in payload:
+                        live_settings[k] = int(payload[k])
+                for k in float_keys:
+                    if k in payload:
+                        live_settings[k] = float(payload[k])
+                try:
+                    cfg = json.loads(config_path.read_text(encoding="utf-8"))
+                    cfg["gesture"]["scroll_speed"] = live_settings["scroll_speed"]
+                    cfg["gesture"]["volume_step"]  = live_settings["volume_step"]
+                    cfg["gesture"]["zoom_delta"]   = live_settings["zoom_delta"]
+                    config_path.write_text(
+                        json.dumps(cfg, ensure_ascii=False, indent=2),
+                        encoding="utf-8"
+                    )
+                    self._respond(200, '{"ok":true}')
+                except Exception as e:
+                    self._respond(500, f'{{"error":"{e}"}}')
+            else:
+                self._respond(404, '{"error":"not found"}')
+
+    return Handler
+
+
+def _start_server(config_path: Path, app_state: dict, live_settings: dict, port: int = 7777):
+    handler = _make_handler(config_path, app_state, live_settings)
+    server  = HTTPServer(("127.0.0.1", port), handler)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    return server
+
+
 def main():
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtCore import Qt
@@ -35,8 +119,24 @@ def main():
     app.setQuitOnLastWindowClosed(False)   # 창 닫아도 트레이에 유지
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    config   = load_config()
-    features = config["features"]
+    config    = load_config()
+    features  = config["features"]
+
+    # 런타임 공유 상태 (서버 ↔ 메인 루프)
+    app_state = {
+        "running":   True,
+        "user_name": config.get("user_name", "").strip(),
+    }
+
+    # 감도 설정 — 대시보드 세팅 패널에서 실시간 변경 가능
+    gesture_cfg = config.get("gesture", {})
+    live_settings = {
+        "scroll_speed": gesture_cfg.get("scroll_speed", 40),
+        "volume_step":  gesture_cfg.get("volume_step", 3),
+        "zoom_delta":   gesture_cfg.get("zoom_delta", 20),
+    }
+
+    _start_server(CONFIG_PATH, app_state, live_settings)
 
     from core import Camera, HandTracker
     from core.gesture_engine import (
@@ -66,6 +166,11 @@ def main():
     zoom        = ZoomController()
     voice_typer = VoiceTyper(model_name="small")
 
+    # 컨트롤러에 live_settings 주입 (딕셔너리 참조 공유 → 즉시 반영)
+    scroll.set_settings(live_settings)
+    volume.set_settings(live_settings)
+    zoom.set_settings(live_settings)
+
     voice_state  = {"status": "idle"}   # "idle" | "recording" | "transcribing"
     claude_state = {"status": "idle"}   # "idle" | "recording" | "thinking"
     lock_state   = {"locked": False}
@@ -93,10 +198,10 @@ def main():
             lock_state["locked"] = not lock_state["locked"]
             if lock_state["locked"]:
                 dashboard.set_state("locked")
-                tray.notify("Javis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
+                tray.notify("Gomis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
             else:
                 dashboard.set_state("idle")
-                tray.notify("Javis 🔓", "잠금 모드 OFF")
+                tray.notify("Gomis 🔓", "잠금 모드 OFF")
 
         # ── 잠금 상태이면 이하 모든 제스처 처리 건너뜀 ──────────────
         if lock_state["locked"]:
@@ -108,21 +213,21 @@ def main():
                 and claude_state["status"] == "idle":
             voice_state["status"] = "recording"
             voice_typer.start()
-            tray.notify("Javis 🎤", "녹음 중… 다시 박수치면 종료")
+            tray.notify("Gomis 🎤", "녹음 중… 다시 박수치면 종료")
 
         elif clap == GESTURE_VOICE_END and voice_state["status"] == "recording":
             voice_state["status"] = "transcribing"
-            tray.notify("Javis", "음성 인식 중…")
+            tray.notify("Gomis", "음성 인식 중…")
 
             def _do_transcribe():
                 try:
                     text = voice_typer.stop_and_transcribe(auto_enter=True)
                     if text:
-                        tray.notify("Javis ✅", f"입력: {text[:40]}")
+                        tray.notify(" ✅", f"입력: {text[:40]}")
                     else:
-                        tray.notify("Javis", "인식된 텍스트 없음")
+                        tray.notify("Gomis", "인식된 텍스트 없음")
                 except Exception as e:
-                    tray.notify("Javis ❌", f"음성 인식 오류: {e}")
+                    tray.notify("Gomis ❌", f"음성 인식 오류: {e}")
                 finally:
                     voice_state["status"] = "idle"
 
@@ -135,33 +240,35 @@ def main():
             # 인사말 TTS → 완료 후 녹음 시작 (Claude 호출 없음)
             claude_state["status"] = "greeting"
             dashboard.set_state("speaking")
-            tray.notify("Javis 🤖", "Gomis 인사 중…")
+            tray.notify("Gomis 🤖", "Gomis 인사 중…")
 
             def _start_recording():
                 claude_state["status"] = "recording"
                 dashboard.set_state("listening")
                 voice_typer.start()
-                tray.notify("Javis 🎤", "녹음 중… 다시 손 모으면 전송")
+                tray.notify("Gomis 🎤", "녹음 중… 다시 손 모으면 전송")
 
-            speak_async("네 무엇을 도와드릴까요?", on_done=_start_recording)
+            _name    = app_state["user_name"]
+            greeting = f"네 {_name}님 무엇을 도와드릴까요?" if _name else "네 무엇을 도와드릴까요?"
+            speak_async(greeting, on_done=_start_recording)
 
         elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
             claude_state["status"] = "thinking"
             dashboard.set_state("thinking")
-            tray.notify("Javis", "Claude 생각 중…")
+            tray.notify("Gomis", "Claude 생각 중…")
 
             def _do_claude():
                 try:
                     text = voice_typer.stop_and_transcribe(auto_enter=False)
                     if not text:
-                        tray.notify("Javis", "인식된 텍스트 없음")
+                        tray.notify("Gomis", "인식된 텍스트 없음")
                         claude_state["status"] = "idle"
                         dashboard.set_state("idle")
                         return
-                    tray.notify("Javis 🤖", f"질문: {text[:40]}")
+                    tray.notify("Gomis 🤖", f"질문: {text[:40]}")
                     response = ask_claude(text)
                     if response:
-                        tray.notify("Javis 💬", f"{response[:60]}")
+                        tray.notify("Gomis 💬", f"{response[:60]}")
                         dashboard.set_state("speaking")
 
                         def _after_response():
@@ -170,11 +277,11 @@ def main():
 
                         speak_async(response, on_done=_after_response)
                     else:
-                        tray.notify("Javis", "Claude 응답 없음")
+                        tray.notify("Gomis", "Claude 응답 없음")
                         claude_state["status"] = "idle"
                         dashboard.set_state("idle")
                 except Exception as e:
-                    tray.notify("Javis ❌", f"Claude 오류: {e}")
+                    tray.notify("Gomis ❌", f"Claude 오류: {e}")
                     claude_state["status"] = "idle"
                     dashboard.set_state("idle")
 
@@ -224,7 +331,7 @@ def main():
     tray.show()
     preview.show()
     dashboard.show()
-    tray.notify("Javis 시작", "손 제스처로 컴퓨터를 제어합니다.")
+    tray.notify("Gomis 시작", "손 제스처로 컴퓨터를 제어합니다.")
 
     sys.exit(app.exec_())
 
