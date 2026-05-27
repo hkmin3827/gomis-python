@@ -1,14 +1,14 @@
 import json
-from pathlib import Path
 from collections import namedtuple
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
 import numpy as np
+from resource_path import resource_path
 
-CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
-MODEL_PATH  = Path(__file__).parent / "hand_landmarker.task"
+CONFIG_PATH = resource_path('config', 'settings.json')
+MODEL_PATH  = resource_path('core', 'hand_landmarker.task')
 
 # 랜드마크 인덱스
 WRIST      = 0

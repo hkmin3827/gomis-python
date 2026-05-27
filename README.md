@@ -14,7 +14,7 @@
 - **완전 로컬 실행** — 인터넷 연결 불필요, 원격 서버 없음
 - **OS 접근 수준** — 일반 사용자 권한만 사용. 커서·클릭은 PyAutoGUI가 Windows `SendInput()` API를 통해 가상 이벤트로 전송 (드라이버·커널 접근 없음)
 - **음성 인식** — Whisper 로컬 모델, 외부 전송 없음
-- **Claude 연동** — `claude -p` CLI subprocess, Pro 멤버십 활용 (별도 API 과금 없음)
+- **Claude 연동** — `claude -p` CLI subprocess, 로그인 계정의 Claude 요금제 차감 (별도 API 키 불필요, 매 호출 새 세션)
 
 ---
 
@@ -61,7 +61,7 @@
 | 음성 타이핑 | **양손 손날 맞대기(박수)** → 녹음 시작 → 다시 박수 → Whisper STT → 현재 창에 텍스트 입력   |
 | Claude 대화 | **양손 손가락 모으기(이탈리아 제스처)** → 녹음 → 다시 모으기 → STT → Claude CLI → TTS 응답 |
 
-- Claude 연동은 `claude -p` CLI subprocess 방식 — Pro 멤버십 활용, 별도 과금 없음
+- Claude 연동은 `claude -p` CLI subprocess 방식 — 로그인 계정 요금제 차감, 매 호출 새 세션, 별도 API 키 불필요
 - TTS: edge-tts(`ko-KR-SunHiNeural`) 우선, 오프라인 시 pyttsx3 폴백
 - 응답 형식: 3문장 이내 구어체, 마크다운 없음 (TTS 청취 최적화)
 
@@ -97,18 +97,19 @@
 ## 프로젝트 구조
 
 ```
-gomis-prj/
-├── main.py                    # 앱 엔트리포인트
+javis-prj/
+├── main.py                    # 앱 엔트리포인트 + HTTP 브리지 서버 (포트 7777)
 ├── core/
 │   ├── camera.py              # OpenCV 카메라 캡처
 │   ├── hand_tracker.py        # MediaPipe 손 랜드마크 추출
 │   ├── gesture_engine.py      # 상태 기계 기반 제스처 판별
-│   └── hand_landmarker.task   # MediaPipe 모델 파일 (자동 다운로드)
+│   └── hand_landmarker.task   # MediaPipe 모델 파일
 ├── controllers/
 │   ├── cursor.py              # 커서 이동·클릭
 │   ├── scroll.py              # 스크롤
 │   ├── volume.py              # 볼륨 조절
-│   └── window_switcher.py     # 창 전환
+│   ├── window_switcher.py     # 창 전환
+│   └── zoom.py                # 줌 인/아웃
 ├── voice/
 │   ├── whisper_stt.py         # Whisper 로컬 음성 인식 (sounddevice + Whisper)
 │   ├── claude_client.py       # Claude Code CLI subprocess 호출
@@ -116,18 +117,20 @@ gomis-prj/
 ├── ui/
 │   ├── preview_window.py      # PyQt5 카메라 미리보기 창
 │   ├── tray.py                # 시스템 트레이 아이콘
-│   └── debug_overlay.py       # 디버그 오버레이 (랜드마크·제스처·FPS)
+│   ├── gomis_dashboard.py     # PyQt5 WebEngine 대시보드 창
+│   ├── dashboard.html         # Gomis 파티클 대시보드 UI (Three.js + 제스처 카드)
+│   └── gomis.html             # Gomis 3D 파티클 구체 렌더러
 ├── config/
-│   └── settings.json          # 카메라·제스처 감도·기능 ON/OFF
+│   └── settings.json          # 카메라·제스처 감도·기능 ON/OFF·사용자 이름
 ├── docs/
-│   └── motion-capture-img/    # 손동작 레퍼런스 이미지
+│   └── blog-draft-01.html     # 개발 블로그 초안
 ├── tasks/
 │   ├── todo.md                # 개발 체크리스트
 │   └── progress.md            # 작업 기록
+├── gomis.spec                 # PyInstaller 빌드 스펙
 ├── .env                       # API 키 (공유 금지)
 ├── .env.example               # 환경변수 예시
-├── requirements.txt
-└── test_camera.py             # 웹캠 + 랜드마크 확인용 테스트
+└── requirements.txt
 ```
 
 ---
@@ -180,6 +183,15 @@ gomis-prj/
 ---
 
 ## 변경 이력
+
+### 2026-05-27 — 대시보드 UI 완성 + PyInstaller 빌드
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **9개 제스처 카드 SVG** | 커서·클릭·스크롤·줌·볼륨·창전환·음성타이핑·AI대화·잠금 — 각 카드 손 모양 직접 SVG 작화 |
+| **이름 변경 모달** | 온보딩과 별도 분리 — 우측 상단 ✏️ 버튼, 애니메이션 fade in/out |
+| **파티클 시스템 개선** | 격자 기반 + sin/cos 부유 애니메이션, 커서 접근 시 이차 반발력 |
+| **PyInstaller 빌드** | `gomis.spec` 작성 — MediaPipe·Qt·Whisper 포함 단독 실행 파일 |
 
 ### 2026-05-26 — Gomis 대시보드 개선 + 잠금 모드 구현
 

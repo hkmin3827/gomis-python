@@ -36,4 +36,3 @@ screen-brightness-control>=0.22.1
 
 # 공통
 numpy>=1.24.0
-python-dotenv>=1.0.0

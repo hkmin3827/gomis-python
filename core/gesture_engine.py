@@ -1,8 +1,8 @@
 import json
 import time
 from enum import Enum
-from pathlib import Path
 
+from resource_path import resource_path
 from .hand_tracker import (
     HandTracker, HandResult,
     WRIST, THUMB_TIP, THUMB_IP,
@@ -12,7 +12,7 @@ from .hand_tracker import (
     PINKY_TIP, PINKY_PIP, PINKY_MCP,
 )
 
-CONFIG_PATH = Path(__file__).parent.parent / "config" / "settings.json"
+CONFIG_PATH = resource_path('config', 'settings.json')
 
 GESTURE_NONE          = "none"
 GESTURE_CURSOR        = "cursor"

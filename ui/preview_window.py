@@ -14,7 +14,7 @@ class PreviewWindow(QWidget):
         self._runner = engine_runner
         self._debug  = False
 
-        self.setWindowTitle("Javis Motion Control")
+        self.setWindowTitle("Gomis Motion Control")
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.resize(640, 520)
 

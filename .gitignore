@@ -44,3 +44,4 @@ tasks/
 .claude/
 SECURITY.md
 docs/
+build_log.txt

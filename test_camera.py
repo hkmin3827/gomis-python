@@ -34,7 +34,7 @@ while True:
         cv2.putText(frame, "No Hand", (10, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (100, 100, 100), 2)
 
-    cv2.imshow("Javis - Hand Tracker Test", frame)
+    cv2.imshow("Gomis - Hand Tracker Test", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

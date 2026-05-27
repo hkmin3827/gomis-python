@@ -1,7 +1,7 @@
-import os
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl, Qt, pyqtSignal
+from resource_path import resource_path
 
 
 class GomisDashboard(QMainWindow):
@@ -19,7 +19,7 @@ class GomisDashboard(QMainWindow):
         self._view = QWebEngineView(self)
         self.setCentralWidget(self._view)
 
-        html_path = os.path.join(os.path.dirname(__file__), 'gomis.html')
+        html_path = str(resource_path('ui', 'gomis.html'))
         self._view.load(QUrl.fromLocalFile(html_path))
 
         # 신호 연결: 백그라운드 스레드 → Qt 메인 스레드

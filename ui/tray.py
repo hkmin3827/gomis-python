@@ -19,7 +19,7 @@ class TrayIcon(QObject):
         icon = QIcon(str(ICON_PATH)) if ICON_PATH.exists() else QApplication.style().standardIcon(65)
 
         self._tray = QSystemTrayIcon(icon, parent)
-        self._tray.setToolTip("Javis Motion Control")
+        self._tray.setToolTip("Gomis Motion Control")
 
         menu = QMenu()
 
