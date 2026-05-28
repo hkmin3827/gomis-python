@@ -199,6 +199,18 @@ gomis-prj/
 
 ## 변경 이력
 
+### 2026-05-28 — Claude CLI 에러 응답 분기 처리 (릴리즈 사전 수정)
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **ClaudeResult 반환 타입** | `ask_claude()` 반환을 `str` → `ClaudeResult` 데이터클래스로 변경. `text`(TTS 음성), `error_type`(None=정상), `detail`(다이얼로그 상세) 필드 |
+| **NOT_INSTALLED** | `FileNotFoundError` 감지 → 트레이 알림 + QMessageBox 설치 안내 (PowerShell 명령어 포함) + TTS |
+| **NOT_AUTHENTICATED** | stderr/stdout에 `login`, `auth` 등 키워드 감지 → "Claude 회원 연결이 필요합니다" 트레이 알림 + 로그인 안내 다이얼로그 + TTS |
+| **TOKEN_EXHAUSTED** | `credit`, `quota`, `exhausted` 등 키워드 감지 → "이용 한도 초과, 초기화 이전까지 응답 어려움" 트레이 알림 + TTS |
+| **Qt 스레드 안전 다이얼로그** | `GomisDashboard._dialog_signal = pyqtSignal(str, str, str)` 추가 — 백그라운드 스레드에서 `show_error_dialog()` 호출 시 메인 스레드에서 `QMessageBox` 표시 |
+
+---
+
 ### 2026-05-28 — Gomis UI 개선 + 음성 타이핑 확장
 
 | 항목 | 내용 |

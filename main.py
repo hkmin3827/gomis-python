@@ -164,7 +164,7 @@ def main():
     )
 
     from voice.whisper_stt import VoiceTyper
-    from voice.claude_client import ask_claude
+    from voice.claude_client import ask_claude, NOT_INSTALLED, NOT_AUTHENTICATED, TOKEN_EXHAUSTED
     from voice.tts import speak_async
 
     cam     = Camera()
@@ -308,16 +308,49 @@ def main():
                         dashboard.set_state("idle")
                         return
                     tray.notify("Gomis 🤖", f"질문: {text[:40]}")
-                    response = ask_claude(text)
-                    if response:
-                        tray.notify("Gomis 💬", f"{response[:60]}")
+                    result = ask_claude(text)
+
+                    if not result.ok:
+                        # ── 에러 타입별 처리 ────────────────────────────
+                        if result.error_type == NOT_INSTALLED:
+                            tray.notify("Gomis ❌", "Claude CLI 미설치 — 설치 안내를 확인하세요")
+                            dashboard.show_error_dialog(
+                                "Claude CLI 설치 필요",
+                                "Claude CLI가 설치되어 있지 않습니다.",
+                                result.detail,
+                            )
+                        elif result.error_type == NOT_AUTHENTICATED:
+                            tray.notify("Gomis ⚠️", "Claude 회원 연결이 필요합니다")
+                            dashboard.show_error_dialog(
+                                "Claude 로그인 필요",
+                                "Claude CLI에 로그인되어 있지 않습니다.\n"
+                                "아래 안내에 따라 로그인 후 재시작해 주세요.",
+                                result.detail,
+                            )
+                        elif result.error_type == TOKEN_EXHAUSTED:
+                            tray.notify("Gomis ⚠️", result.text[:60])
+                        else:  # UNKNOWN_ERROR
+                            tray.notify("Gomis ❌", result.text[:60])
+                            if result.detail:
+                                dashboard.show_error_dialog(
+                                    "Claude 오류",
+                                    result.text,
+                                    result.detail,
+                                )
+                        speak_async(result.text)
+                        claude_state["status"] = "idle"
+                        dashboard.set_state("idle")
+                        return
+
+                    if result.text:
+                        tray.notify("Gomis 💬", f"{result.text[:60]}")
                         dashboard.set_state("speaking")
 
                         def _after_response():
                             claude_state["status"] = "idle"
                             dashboard.set_state("idle")
 
-                        speak_async(response, on_done=_after_response)
+                        speak_async(result.text, on_done=_after_response)
                     else:
                         tray.notify("Gomis", "Claude 응답 없음")
                         claude_state["status"] = "idle"
