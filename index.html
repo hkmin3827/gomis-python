@@ -320,25 +320,102 @@
         transform: translateY(0);
       }
 
-      .gc:nth-child(1) { grid-column: 1/5; grid-row: 1; }
-      .gc:nth-child(2) { grid-column: 5/9; grid-row: 1/3; }
-      .gc:nth-child(3) { grid-column: 9/13; grid-row: 1; }
-      .gc:nth-child(4) { grid-column: 1/5; grid-row: 2; }
-      .gc:nth-child(5) { grid-column: 9/13; grid-row: 2; }
-      .gc:nth-child(6) { grid-column: 1/4; grid-row: 3/5; }
-      .gc:nth-child(7) { grid-column: 4/8; grid-row: 3; }
-      .gc:nth-child(8) { grid-column: 8/13; grid-row: 3; }
-      .gc:nth-child(9) { grid-column: 4/13; grid-row: 4; }
+      .gc:nth-child(1) {
+        grid-column: 1/5;
+        grid-row: 1;
+      }
+      .gc:nth-child(2) {
+        grid-column: 5/9;
+        grid-row: 1/3;
+      }
+      .gc:nth-child(3) {
+        grid-column: 9/13;
+        grid-row: 1;
+      }
+      .gc:nth-child(4) {
+        grid-column: 1/5;
+        grid-row: 2;
+      }
+      .gc:nth-child(5) {
+        grid-column: 9/13;
+        grid-row: 2;
+      }
+      .gc:nth-child(6) {
+        grid-column: 1/4;
+        grid-row: 3/5;
+      }
+      .gc:nth-child(7) {
+        grid-column: 4/8;
+        grid-row: 3;
+      }
+      .gc:nth-child(8) {
+        grid-column: 8/13;
+        grid-row: 3;
+      }
+      .gc:nth-child(9) {
+        grid-column: 4/13;
+        grid-row: 4;
+      }
 
-      .gc:nth-child(1) { background: radial-gradient(ellipse at 30% 70%, #1a1210 0%, #050505 80%); }
-      .gc:nth-child(2) { background: radial-gradient(ellipse at 60% 40%, #0f0f0f 0%, #000 80%); }
-      .gc:nth-child(3) { background: radial-gradient(ellipse at 70% 50%, #111008 0%, #060605 80%); }
-      .gc:nth-child(4) { background: radial-gradient(ellipse at 40% 60%, #0c0c12 0%, #060606 80%); }
-      .gc:nth-child(5) { background: radial-gradient(ellipse at 50% 40%, #100a0a 0%, #050505 80%); }
-      .gc:nth-child(6) { background: radial-gradient(ellipse at 40% 50%, #0a0a10 0%, #040404 80%); }
-      .gc:nth-child(7) { background: radial-gradient(ellipse at 50% 60%, #101008 0%, #060606 80%); }
-      .gc:nth-child(8) { background: radial-gradient(ellipse at 60% 40%, #0e0e0c 0%, #040404 80%); }
-      .gc:nth-child(9) { background: radial-gradient(ellipse at 30% 50%, #120a0a 0%, #050505 80%); }
+      .gc:nth-child(1) {
+        background: radial-gradient(
+          ellipse at 30% 70%,
+          #1a1210 0%,
+          #050505 80%
+        );
+      }
+      .gc:nth-child(2) {
+        background: radial-gradient(ellipse at 60% 40%, #0f0f0f 0%, #000 80%);
+      }
+      .gc:nth-child(3) {
+        background: radial-gradient(
+          ellipse at 70% 50%,
+          #111008 0%,
+          #060605 80%
+        );
+      }
+      .gc:nth-child(4) {
+        background: radial-gradient(
+          ellipse at 40% 60%,
+          #0c0c12 0%,
+          #060606 80%
+        );
+      }
+      .gc:nth-child(5) {
+        background: radial-gradient(
+          ellipse at 50% 40%,
+          #100a0a 0%,
+          #050505 80%
+        );
+      }
+      .gc:nth-child(6) {
+        background: radial-gradient(
+          ellipse at 40% 50%,
+          #0a0a10 0%,
+          #040404 80%
+        );
+      }
+      .gc:nth-child(7) {
+        background: radial-gradient(
+          ellipse at 50% 60%,
+          #101008 0%,
+          #060606 80%
+        );
+      }
+      .gc:nth-child(8) {
+        background: radial-gradient(
+          ellipse at 60% 40%,
+          #0e0e0c 0%,
+          #040404 80%
+        );
+      }
+      .gc:nth-child(9) {
+        background: radial-gradient(
+          ellipse at 30% 50%,
+          #120a0a 0%,
+          #050505 80%
+        );
+      }
 
       .gc-inner {
         position: absolute;
@@ -362,8 +439,12 @@
         filter: brightness(0.5);
         transition: filter 0.4s;
       }
-      .gc:hover .gc-hand { transform: scale(0.82); }
-      .gc:hover .gc-hand svg { filter: brightness(0.85); }
+      .gc:hover .gc-hand {
+        transform: scale(0.82);
+      }
+      .gc:hover .gc-hand svg {
+        filter: brightness(0.85);
+      }
 
       .gc-ov {
         position: absolute;
@@ -379,7 +460,9 @@
         transition: opacity 0.34s cubic-bezier(0.23, 1, 0.32, 1);
         gap: 6px;
       }
-      .gc:hover .gc-ov { opacity: 1; }
+      .gc:hover .gc-ov {
+        opacity: 1;
+      }
       .gc-ov-tag {
         font-family: "Pretendard", sans-serif;
         font-size: clamp(7px, 1vw, 9px);
@@ -442,7 +525,7 @@
         >
           ↓ &nbsp;DOWNLOAD v1.0
         </a>
-        <div class="dl-info">WINDOWS 10 / 11 · 64-BIT · v0.1.0 · FREE</div>
+        <div class="dl-info">WINDOWS 10 / 11 · 64-BIT · v1.0.0 · FREE</div>
       </div>
     </section>
 
@@ -534,11 +617,34 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand">
-              <svg viewBox="0 0 80 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M40 10 L40 68" stroke="white" stroke-width="11" stroke-linecap="round" />
-                <path d="M28 42 C20 38 18 50 28 54 L40 56" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M28 54 C18 52 16 64 28 68 L40 68" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M30 68 C28 76 28 92 40 95 C52 92 52 76 50 68Z" fill="white" opacity=".3" />
+              <svg
+                viewBox="0 0 80 110"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M40 10 L40 68"
+                  stroke="white"
+                  stroke-width="11"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M28 42 C20 38 18 50 28 54 L40 56"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M28 54 C18 52 16 64 28 68 L40 68"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M30 68 C28 76 28 92 40 95 C52 92 52 76 50 68Z"
+                  fill="white"
+                  opacity=".3"
+                />
               </svg>
             </div>
           </div>
@@ -552,20 +658,74 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand" style="width: 60%; height: 60%">
-              <svg viewBox="0 0 90 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="12" y="16" width="60" height="46" rx="11" fill="white" fill-opacity=".5" />
-                <path d="M14 18 Q20 6 30 4 Q40 2 45 4 Q54 2 62 8 Q70 14 72 20" stroke="white" stroke-width="3" fill="white" fill-opacity=".2" />
-                <line x1="31" y1="16" x2="31" y2="26" stroke="white" stroke-width="1.5" opacity=".45" />
-                <line x1="46" y1="16" x2="46" y2="26" stroke="white" stroke-width="1.5" opacity=".45" />
-                <line x1="61" y1="16" x2="61" y2="26" stroke="white" stroke-width="1.5" opacity=".45" />
-                <path d="M12 62 Q12 78 30 80 Q45 82 62 80 Q78 78 78 62" fill="white" fill-opacity=".25" />
-                <path d="M11 30 Q3 36 4 48 Q5 58 14 56" stroke="white" stroke-width="8" stroke-linecap="round" fill="none" />
+              <svg
+                viewBox="0 0 90 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="12"
+                  y="16"
+                  width="60"
+                  height="46"
+                  rx="11"
+                  fill="white"
+                  fill-opacity=".5"
+                />
+                <path
+                  d="M14 18 Q20 6 30 4 Q40 2 45 4 Q54 2 62 8 Q70 14 72 20"
+                  stroke="white"
+                  stroke-width="3"
+                  fill="white"
+                  fill-opacity=".2"
+                />
+                <line
+                  x1="31"
+                  y1="16"
+                  x2="31"
+                  y2="26"
+                  stroke="white"
+                  stroke-width="1.5"
+                  opacity=".45"
+                />
+                <line
+                  x1="46"
+                  y1="16"
+                  x2="46"
+                  y2="26"
+                  stroke="white"
+                  stroke-width="1.5"
+                  opacity=".45"
+                />
+                <line
+                  x1="61"
+                  y1="16"
+                  x2="61"
+                  y2="26"
+                  stroke="white"
+                  stroke-width="1.5"
+                  opacity=".45"
+                />
+                <path
+                  d="M12 62 Q12 78 30 80 Q45 82 62 80 Q78 78 78 62"
+                  fill="white"
+                  fill-opacity=".25"
+                />
+                <path
+                  d="M11 30 Q3 36 4 48 Q5 58 14 56"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                  fill="none"
+                />
               </svg>
             </div>
           </div>
           <div class="gc-ov">
             <div class="gc-ov-tag">CLICK / DOUBLE CLICK</div>
-            <div class="gc-ov-desc">손을 쥐어 클릭<br />두 번 쥐면 더블클릭</div>
+            <div class="gc-ov-desc">
+              손을 쥐어 클릭<br />두 번 쥐면 더블클릭
+            </div>
           </div>
         </div>
 
@@ -573,12 +733,39 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand">
-              <svg viewBox="0 0 80 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M32 12 L32 68" stroke="white" stroke-width="10" stroke-linecap="round" />
-                <path d="M50 16 L50 68" stroke="white" stroke-width="10" stroke-linecap="round" />
-                <path d="M20 46 C12 42 10 54 20 58 L32 60" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M32 68 C30 78 30 90 41 93 C52 90 52 78 50 68Z" fill="white" opacity=".3" />
-                <path d="M41 4 L37 10 L41 16 L45 10 Z" fill="white" opacity=".7" />
+              <svg
+                viewBox="0 0 80 110"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M32 12 L32 68"
+                  stroke="white"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M50 16 L50 68"
+                  stroke="white"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M20 46 C12 42 10 54 20 58 L32 60"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M32 68 C30 78 30 90 41 93 C52 90 52 78 50 68Z"
+                  fill="white"
+                  opacity=".3"
+                />
+                <path
+                  d="M41 4 L37 10 L41 16 L45 10 Z"
+                  fill="white"
+                  opacity=".7"
+                />
               </svg>
             </div>
           </div>
@@ -592,20 +779,70 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand">
-              <svg viewBox="0 0 90 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M28 48 Q26 42 30 40 Q38 36 52 36 Q62 38 64 46 L64 78 Q62 88 44 90 Q26 88 28 78 Z" fill="white" fill-opacity=".32" />
-                <path d="M28 54 Q18 52 8 54 Q2 54 2 60 Q2 66 8 66 Q18 66 28 62" stroke="white" stroke-width="9" stroke-linecap="round" fill="none" />
-                <path d="M36 36 Q34 46 38 50" stroke="white" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55" />
-                <path d="M44 34 Q42 44 46 48" stroke="white" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55" />
-                <path d="M52 36 Q50 46 54 50" stroke="white" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55" />
-                <path d="M62 52 Q66 58 68 42 Q70 30 64 26 Q58 22 54 32 Q52 44 58 50" stroke="white" stroke-width="9" stroke-linecap="round" fill="none" />
-                <path d="M76 54 Q82 62 82 72 Q82 82 76 90" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".5" />
+              <svg
+                viewBox="0 0 90 110"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M28 48 Q26 42 30 40 Q38 36 52 36 Q62 38 64 46 L64 78 Q62 88 44 90 Q26 88 28 78 Z"
+                  fill="white"
+                  fill-opacity=".32"
+                />
+                <path
+                  d="M28 54 Q18 52 8 54 Q2 54 2 60 Q2 66 8 66 Q18 66 28 62"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M36 36 Q34 46 38 50"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  fill="none"
+                  opacity=".55"
+                />
+                <path
+                  d="M44 34 Q42 44 46 48"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  fill="none"
+                  opacity=".55"
+                />
+                <path
+                  d="M52 36 Q50 46 54 50"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  fill="none"
+                  opacity=".55"
+                />
+                <path
+                  d="M62 52 Q66 58 68 42 Q70 30 64 26 Q58 22 54 32 Q52 44 58 50"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M76 54 Q82 62 82 72 Q82 82 76 90"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  fill="none"
+                  opacity=".5"
+                />
               </svg>
             </div>
           </div>
           <div class="gc-ov">
             <div class="gc-ov-tag">VOLUME</div>
-            <div class="gc-ov-desc">샤카(엄지+새끼)<br />오른손=업 / 왼손=다운</div>
+            <div class="gc-ov-desc">
+              샤카(엄지+새끼)<br />오른손=업 / 왼손=다운
+            </div>
           </div>
         </div>
 
@@ -613,13 +850,54 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand">
-              <svg viewBox="0 0 90 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M66 52 Q76 44 78 32 Q80 22 74 18 Q66 14 62 26 Q58 38 60 50Z" fill="white" fill-opacity=".28" />
-                <path d="M24 44 Q44 22 70 50" stroke="white" stroke-width="9" stroke-linecap="round" fill="none" />
-                <path d="M24 74 Q44 92 70 66" stroke="white" stroke-width="9" stroke-linecap="round" fill="none" />
-                <ellipse cx="68" cy="58" rx="5" ry="6" stroke="white" stroke-width="1.5" fill="none" opacity=".45" />
-                <path d="M6 18 L14 18 M10 14 L10 22" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".6" />
-                <path d="M6 86 L14 86 M8 82 L12 90" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".6" />
+              <svg
+                viewBox="0 0 90 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M66 52 Q76 44 78 32 Q80 22 74 18 Q66 14 62 26 Q58 38 60 50Z"
+                  fill="white"
+                  fill-opacity=".28"
+                />
+                <path
+                  d="M24 44 Q44 22 70 50"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M24 74 Q44 92 70 66"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <ellipse
+                  cx="68"
+                  cy="58"
+                  rx="5"
+                  ry="6"
+                  stroke="white"
+                  stroke-width="1.5"
+                  fill="none"
+                  opacity=".45"
+                />
+                <path
+                  d="M6 18 L14 18 M10 14 L10 22"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  opacity=".6"
+                />
+                <path
+                  d="M6 86 L14 86 M8 82 L12 90"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  opacity=".6"
+                />
               </svg>
             </div>
           </div>
@@ -638,20 +916,62 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand" style="width: 65%; height: 65%">
-              <svg viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M26 30 L26 78" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M38 20 L38 76" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M50 22 L50 76" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M62 28 L62 76" stroke="white" stroke-width="9" stroke-linecap="round" />
-                <path d="M20 56 C12 52 10 64 20 68 L26 70" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M26 78 C24 90 28 104 50 106 C72 104 76 90 74 78Z" fill="white" opacity=".28" />
-                <path d="M18 120 L56 120 M46 112 L56 120 L46 128" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity=".65" />
+              <svg
+                viewBox="0 0 100 130"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M26 30 L26 78"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M38 20 L38 76"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M50 22 L50 76"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M62 28 L62 76"
+                  stroke="white"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M20 56 C12 52 10 64 20 68 L26 70"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M26 78 C24 90 28 104 50 106 C72 104 76 90 74 78Z"
+                  fill="white"
+                  opacity=".28"
+                />
+                <path
+                  d="M18 120 L56 120 M46 112 L56 120 L46 128"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  opacity=".65"
+                />
               </svg>
             </div>
           </div>
           <div class="gc-ov">
             <div class="gc-ov-tag">WINDOW SWITCH</div>
-            <div class="gc-ov-desc">손바닥 수평 스와이프로<br />창을 전환합니다</div>
+            <div class="gc-ov-desc">
+              손바닥 수평 스와이프로<br />창을 전환합니다
+            </div>
           </div>
         </div>
 
@@ -659,20 +979,60 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand">
-              <svg viewBox="0 0 110 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M28 50 C26 38 24 24 22 12 C20 4 26 2 30 4 C34 6 34 22 32 50" stroke="white" stroke-width="10" stroke-linecap="round" fill="none" />
-                <path d="M16 54 Q14 42 20 40 Q28 38 34 40 L34 54 Q34 68 26 72 Q16 70 16 54 Z" fill="white" opacity=".38" />
-                <path d="M82 50 C84 38 86 24 88 12 C90 4 84 2 80 4 C76 6 76 22 78 50" stroke="white" stroke-width="10" stroke-linecap="round" fill="none" />
-                <path d="M94 54 Q96 42 90 40 Q82 38 76 40 L76 54 Q76 68 84 72 Q94 70 94 54 Z" fill="white" opacity=".38" />
-                <rect x="48" y="80" width="14" height="10" rx="2" fill="white" opacity=".75" />
-                <path d="M50 80 C50 74 62 74 62 80" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" />
+              <svg
+                viewBox="0 0 110 96"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M28 50 C26 38 24 24 22 12 C20 4 26 2 30 4 C34 6 34 22 32 50"
+                  stroke="white"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M16 54 Q14 42 20 40 Q28 38 34 40 L34 54 Q34 68 26 72 Q16 70 16 54 Z"
+                  fill="white"
+                  opacity=".38"
+                />
+                <path
+                  d="M82 50 C84 38 86 24 88 12 C90 4 84 2 80 4 C76 6 76 22 78 50"
+                  stroke="white"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                  fill="none"
+                />
+                <path
+                  d="M94 54 Q96 42 90 40 Q82 38 76 40 L76 54 Q76 68 84 72 Q94 70 94 54 Z"
+                  fill="white"
+                  opacity=".38"
+                />
+                <rect
+                  x="48"
+                  y="80"
+                  width="14"
+                  height="10"
+                  rx="2"
+                  fill="white"
+                  opacity=".75"
+                />
+                <path
+                  d="M50 80 C50 74 62 74 62 80"
+                  stroke="white"
+                  stroke-width="2.5"
+                  fill="none"
+                  stroke-linecap="round"
+                />
                 <circle cx="55" cy="85" r="1.8" fill="var(--bg-d)" />
               </svg>
             </div>
           </div>
           <div class="gc-ov">
             <div class="gc-ov-tag">LOCK MODE</div>
-            <div class="gc-ov-desc">양손 엄지 따봉<br />1.5초 지속 → 잠금 / 해제</div>
+            <div class="gc-ov-desc">
+              양손 엄지 따봉<br />1.5초 지속 → 잠금 / 해제
+            </div>
           </div>
         </div>
 
@@ -680,22 +1040,111 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand" style="width: 70%; height: 70%">
-              <svg viewBox="0 0 110 85" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 60 Q14 40 18 22" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M22 58 Q22 36 26 14" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M30 56 Q30 34 34 10" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M38 57 Q38 36 42 16" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M44 58 Q52 50 54 46" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M10 62 Q8 74 20 78 Q34 80 42 74 L42 60 Z" fill="white" opacity=".32" />
-                <path d="M96 60 Q96 40 92 22" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M88 58 Q88 36 84 14" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M80 56 Q80 34 76 10" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M72 57 Q72 36 68 16" stroke="white" stroke-width="8" stroke-linecap="round" />
-                <path d="M66 58 Q58 50 56 46" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M100 62 Q102 74 90 78 Q76 80 68 74 L68 60 Z" fill="white" opacity=".32" />
-                <line x1="55" y1="26" x2="55" y2="34" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity=".55" />
-                <line x1="43" y1="30" x2="48" y2="36" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".4" />
-                <line x1="67" y1="30" x2="62" y2="36" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".4" />
+              <svg
+                viewBox="0 0 110 85"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14 60 Q14 40 18 22"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M22 58 Q22 36 26 14"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M30 56 Q30 34 34 10"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M38 57 Q38 36 42 16"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M44 58 Q52 50 54 46"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M10 62 Q8 74 20 78 Q34 80 42 74 L42 60 Z"
+                  fill="white"
+                  opacity=".32"
+                />
+                <path
+                  d="M96 60 Q96 40 92 22"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M88 58 Q88 36 84 14"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M80 56 Q80 34 76 10"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M72 57 Q72 36 68 16"
+                  stroke="white"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M66 58 Q58 50 56 46"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M100 62 Q102 74 90 78 Q76 80 68 74 L68 60 Z"
+                  fill="white"
+                  opacity=".32"
+                />
+                <line
+                  x1="55"
+                  y1="26"
+                  x2="55"
+                  y2="34"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  opacity=".55"
+                />
+                <line
+                  x1="43"
+                  y1="30"
+                  x2="48"
+                  y2="36"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  opacity=".4"
+                />
+                <line
+                  x1="67"
+                  y1="30"
+                  x2="62"
+                  y2="36"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  opacity=".4"
+                />
               </svg>
             </div>
           </div>
@@ -709,32 +1158,132 @@
         <div class="gc">
           <div class="gc-inner">
             <div class="gc-hand" style="width: 68%; height: 68%">
-              <svg viewBox="0 0 130 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 20 Q8 4 32 2 Q56 4 54 20" fill="white" opacity=".28" />
-                <path d="M12 22 Q4 56 32 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M20 30 Q12 64 32 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M32 34 Q32 66 32 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M44 30 Q52 64 32 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M52 22 Q60 56 32 100" stroke="white" stroke-width="7" stroke-linecap="round" />
+              <svg
+                viewBox="0 0 130 110"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10 20 Q8 4 32 2 Q56 4 54 20"
+                  fill="white"
+                  opacity=".28"
+                />
+                <path
+                  d="M12 22 Q4 56 32 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M20 30 Q12 64 32 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M32 34 Q32 66 32 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M44 30 Q52 64 32 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M52 22 Q60 56 32 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
                 <circle cx="32" cy="100" r="5" fill="white" opacity=".85" />
-                <path d="M120 20 Q122 4 98 2 Q74 4 76 20" fill="white" opacity=".28" />
-                <path d="M118 22 Q126 56 98 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M110 30 Q118 64 98 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M98 34 Q98 66 98 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M86 30 Q78 64 98 100" stroke="white" stroke-width="7" stroke-linecap="round" />
-                <path d="M78 22 Q70 56 98 100" stroke="white" stroke-width="7" stroke-linecap="round" />
+                <path
+                  d="M120 20 Q122 4 98 2 Q74 4 76 20"
+                  fill="white"
+                  opacity=".28"
+                />
+                <path
+                  d="M118 22 Q126 56 98 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M110 30 Q118 64 98 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M98 34 Q98 66 98 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M86 30 Q78 64 98 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M78 22 Q70 56 98 100"
+                  stroke="white"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                />
                 <circle cx="98" cy="100" r="5" fill="white" opacity=".85" />
-                <path d="M58 52 L65 48 L72 52 L65 56 Z" fill="white" opacity=".65" />
-                <line x1="65" y1="40" x2="65" y2="44" stroke="white" stroke-width="2" opacity=".5" />
-                <line x1="65" y1="60" x2="65" y2="64" stroke="white" stroke-width="2" opacity=".5" />
-                <line x1="53" y1="52" x2="57" y2="52" stroke="white" stroke-width="2" opacity=".5" />
-                <line x1="73" y1="52" x2="77" y2="52" stroke="white" stroke-width="2" opacity=".5" />
+                <path
+                  d="M58 52 L65 48 L72 52 L65 56 Z"
+                  fill="white"
+                  opacity=".65"
+                />
+                <line
+                  x1="65"
+                  y1="40"
+                  x2="65"
+                  y2="44"
+                  stroke="white"
+                  stroke-width="2"
+                  opacity=".5"
+                />
+                <line
+                  x1="65"
+                  y1="60"
+                  x2="65"
+                  y2="64"
+                  stroke="white"
+                  stroke-width="2"
+                  opacity=".5"
+                />
+                <line
+                  x1="53"
+                  y1="52"
+                  x2="57"
+                  y2="52"
+                  stroke="white"
+                  stroke-width="2"
+                  opacity=".5"
+                />
+                <line
+                  x1="73"
+                  y1="52"
+                  x2="77"
+                  y2="52"
+                  stroke="white"
+                  stroke-width="2"
+                  opacity=".5"
+                />
               </svg>
             </div>
           </div>
           <div class="gc-ov">
             <div class="gc-ov-tag">AI AGENT</div>
-            <div class="gc-ov-desc">양손 이탈리아 제스처<br />Claude AI 에이전트 호출</div>
+            <div class="gc-ov-desc">
+              양손 이탈리아 제스처<br />Claude AI 에이전트 호출
+            </div>
           </div>
         </div>
       </div>
@@ -771,10 +1320,16 @@
               </li>
               <li>에이전트 실행 중에는 모션 인식이 일시 중지됩니다</li>
               <li>
-                ⚠ <strong>세션 저장 주의</strong> — Claude Code CLI 특성상
-                음성 질문 1회마다 별도 대화 세션이
-                <code style="font-size:11px;background:rgba(0,0,0,0.07);padding:1px 4px">~/.claude/projects/</code>에
-                저장됩니다. 민감한 내용은 음성으로 묻지 않도록 주의하세요
+                ⚠ <strong>세션 저장 주의</strong> — Claude Code CLI 특성상 음성
+                질문 1회마다 별도 대화 세션이
+                <code
+                  style="
+                    font-size: 11px;
+                    background: rgba(0, 0, 0, 0.07);
+                    padding: 1px 4px;
+                  "
+                  >~/.claude/projects/</code
+                >에 저장됩니다. 민감한 내용은 음성으로 묻지 않도록 주의하세요
               </li>
             </ul>
           </div>
@@ -796,7 +1351,10 @@
             포커스된 입력창에 음성으로 바로 입력할 수 있습니다.
             <ul class="rv-list">
               <li>양손 박수 제스처로 음성 인식을 시작합니다</li>
-              <li>Whisper <strong>small</strong> 모델이 로컬에서 음성을 텍스트로 변환합니다 — 외부 서버 전송 없음</li>
+              <li>
+                Whisper <strong>small</strong> 모델이 로컬에서 음성을 텍스트로
+                변환합니다 — 외부 서버 전송 없음
+              </li>
               <li>
                 커서가 깜빡이는 <strong>포커스된 텍스트 입력창</strong>에 변환된
                 텍스트가 자동 입력됩니다
@@ -811,8 +1369,9 @@
               </li>
               <li>다시 양손 박수를 치면 인식이 종료됩니다</li>
               <li>
-                <strong>최대 녹음 시간 5분(300초)</strong> — 초과 시 자동 종료 및 입력.
-                5분 기준 약 <strong>3,000~4,500자</strong> 분량 처리 가능
+                <strong>최대 녹음 시간 5분(300초)</strong> — 초과 시 자동 종료
+                및 입력. 5분 기준 약 <strong>3,000~4,500자</strong> 분량 처리
+                가능
               </li>
             </ul>
           </div>
@@ -830,7 +1389,10 @@
       // ─── CURSOR ──────────────────────────────────────────
       const cdot = document.getElementById("cdot");
       const cring = document.getElementById("cring");
-      let cx = 0, cy = 0, rx = 0, ry = 0;
+      let cx = 0,
+        cy = 0,
+        rx = 0,
+        ry = 0;
 
       document.addEventListener("mousemove", (e) => {
         cx = e.clientX;
@@ -848,10 +1410,10 @@
 
       document.querySelectorAll("button, a, input, .gc").forEach((el) => {
         el.addEventListener("mouseenter", () =>
-          document.body.classList.add("cursor-expand")
+          document.body.classList.add("cursor-expand"),
         );
         el.addEventListener("mouseleave", () =>
-          document.body.classList.remove("cursor-expand")
+          document.body.classList.remove("cursor-expand"),
         );
       });
 
@@ -862,8 +1424,16 @@
       let mouse = { x: -9999, y: -9999 };
 
       const ICON_TYPES = [
-        "dot", "plus", "cross", "ring", "dash",
-        "tri", "sq", "dot2", "diamond", "arc",
+        "dot",
+        "plus",
+        "cross",
+        "ring",
+        "dash",
+        "tri",
+        "sq",
+        "dot2",
+        "diamond",
+        "arc",
       ];
       const GRID_GAP = 22;
       let ITEMS = [];
@@ -884,8 +1454,14 @@
           this.floatFreq = 0.0008 + Math.random() * 0.0008;
         }
         tick(now) {
-          const tx = this.ox + Math.sin(now * this.floatFreq + this.phase) * this.floatAmp;
-          const ty = this.oy + Math.cos(now * this.floatFreq * 0.7 + this.phase + 1.2) * this.floatAmp * 0.65;
+          const tx =
+            this.ox +
+            Math.sin(now * this.floatFreq + this.phase) * this.floatAmp;
+          const ty =
+            this.oy +
+            Math.cos(now * this.floatFreq * 0.7 + this.phase + 1.2) *
+              this.floatAmp *
+              0.65;
           const dx = this.x - mouse.x;
           const dy = this.y - mouse.y;
           const d2 = dx * dx + dy * dy;
@@ -913,35 +1489,69 @@
           ctx.translate(this.x, this.y);
           switch (this.type) {
             case "dot":
-              ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); break;
+              ctx.beginPath();
+              ctx.arc(0, 0, s, 0, Math.PI * 2);
+              ctx.fill();
+              break;
             case "dot2":
-              ctx.beginPath(); ctx.arc(0, 0, s * 1.6, 0, Math.PI * 2); ctx.fill(); break;
+              ctx.beginPath();
+              ctx.arc(0, 0, s * 1.6, 0, Math.PI * 2);
+              ctx.fill();
+              break;
             case "plus":
               ctx.beginPath();
-              ctx.moveTo(-s * 2.2, 0); ctx.lineTo(s * 2.2, 0);
-              ctx.moveTo(0, -s * 2.2); ctx.lineTo(0, s * 2.2);
-              ctx.stroke(); break;
+              ctx.moveTo(-s * 2.2, 0);
+              ctx.lineTo(s * 2.2, 0);
+              ctx.moveTo(0, -s * 2.2);
+              ctx.lineTo(0, s * 2.2);
+              ctx.stroke();
+              break;
             case "cross":
               ctx.beginPath();
-              ctx.moveTo(-s * 2, -s * 2); ctx.lineTo(s * 2, s * 2);
-              ctx.moveTo(s * 2, -s * 2); ctx.lineTo(-s * 2, s * 2);
-              ctx.stroke(); break;
+              ctx.moveTo(-s * 2, -s * 2);
+              ctx.lineTo(s * 2, s * 2);
+              ctx.moveTo(s * 2, -s * 2);
+              ctx.lineTo(-s * 2, s * 2);
+              ctx.stroke();
+              break;
             case "ring":
-              ctx.beginPath(); ctx.arc(0, 0, s * 2, 0, Math.PI * 2); ctx.stroke(); break;
+              ctx.beginPath();
+              ctx.arc(0, 0, s * 2, 0, Math.PI * 2);
+              ctx.stroke();
+              break;
             case "dash":
-              ctx.beginPath(); ctx.moveTo(-s * 2.5, 0); ctx.lineTo(s * 2.5, 0); ctx.stroke(); break;
+              ctx.beginPath();
+              ctx.moveTo(-s * 2.5, 0);
+              ctx.lineTo(s * 2.5, 0);
+              ctx.stroke();
+              break;
             case "tri":
               ctx.beginPath();
-              ctx.moveTo(0, -s * 2.2); ctx.lineTo(s * 1.9, s * 1.3); ctx.lineTo(-s * 1.9, s * 1.3);
-              ctx.closePath(); ctx.stroke(); break;
+              ctx.moveTo(0, -s * 2.2);
+              ctx.lineTo(s * 1.9, s * 1.3);
+              ctx.lineTo(-s * 1.9, s * 1.3);
+              ctx.closePath();
+              ctx.stroke();
+              break;
             case "sq":
-              ctx.beginPath(); ctx.rect(-s * 1.6, -s * 1.6, s * 3.2, s * 3.2); ctx.stroke(); break;
+              ctx.beginPath();
+              ctx.rect(-s * 1.6, -s * 1.6, s * 3.2, s * 3.2);
+              ctx.stroke();
+              break;
             case "diamond":
               ctx.beginPath();
-              ctx.moveTo(0, -s * 2.2); ctx.lineTo(s * 1.6, 0); ctx.lineTo(0, s * 2.2); ctx.lineTo(-s * 1.6, 0);
-              ctx.closePath(); ctx.stroke(); break;
+              ctx.moveTo(0, -s * 2.2);
+              ctx.lineTo(s * 1.6, 0);
+              ctx.lineTo(0, s * 2.2);
+              ctx.lineTo(-s * 1.6, 0);
+              ctx.closePath();
+              ctx.stroke();
+              break;
             case "arc":
-              ctx.beginPath(); ctx.arc(0, 0, s * 2, 0, Math.PI); ctx.stroke(); break;
+              ctx.beginPath();
+              ctx.arc(0, 0, s * 2, 0, Math.PI);
+              ctx.stroke();
+              break;
           }
           ctx.restore();
         }
@@ -957,7 +1567,8 @@
           for (let c = 0; c < cols; c++) {
             const ox = c * GRID_GAP + (r % 2 === 1 ? GRID_GAP / 2 : 0);
             const oy = r * GRID_GAP;
-            const type = ICON_TYPES[Math.floor(Math.random() * ICON_TYPES.length)];
+            const type =
+              ICON_TYPES[Math.floor(Math.random() * ICON_TYPES.length)];
             ITEMS.push(new Dot(ox, oy, type));
           }
         }
@@ -966,7 +1577,10 @@
       function renderCanvas() {
         ctx.clearRect(0, 0, W, H);
         const now = performance.now();
-        ITEMS.forEach((p) => { p.tick(now); p.draw(); });
+        ITEMS.forEach((p) => {
+          p.tick(now);
+          p.draw();
+        });
         requestAnimationFrame(renderCanvas);
       }
 
@@ -1011,7 +1625,7 @@
             io.unobserve(box);
           });
         },
-        { threshold: 0.18 }
+        { threshold: 0.18 },
       );
 
       document.querySelectorAll(".rv-item-box").forEach((b) => io.observe(b));
@@ -1023,7 +1637,7 @@
             if (en.isIntersecting) en.target.classList.add("revealed");
           });
         },
-        { threshold: 0.06 }
+        { threshold: 0.06 },
       );
 
       document.querySelectorAll(".gc").forEach((c, i) => {
