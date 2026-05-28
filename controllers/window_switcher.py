@@ -21,9 +21,9 @@ class WindowSwitcher:
 
     def handle(self, gesture: str):
         if gesture == GESTURE_WINDOW_ALT_START_RIGHT:
-            self._start(shift=False)
-        elif gesture == GESTURE_WINDOW_ALT_START_LEFT:
             self._start(shift=True)
+        elif gesture == GESTURE_WINDOW_ALT_START_LEFT:
+            self._start(shift=False)
         elif gesture == GESTURE_WINDOW_ALT_TAB:
             self._tap_tab()
         elif gesture == GESTURE_WINDOW_ALT_END:
