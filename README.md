@@ -5,6 +5,19 @@
 
 ---
 
+## 다운로드
+
+| 플랫폼 | 버전 | 링크 |
+| ------ | ---- | ---- |
+| Windows 10 / 11 64-bit | v0.1.0 (~979 MB) | [GitHub Releases →](https://github.com/hkmin3827/gomis-python/releases/tag/v0.1.0) |
+
+> **실행 전 확인사항**
+> - exe 첫 실행 시 **Windows SmartScreen** 경고창 → "추가 정보" → "실행" 클릭
+> - 웹캠 필수 (USB / 내장 무관)
+> - **Claude 대화** 기능 사용 시 `claude` CLI 로그인 필요 (`claude login`)
+
+---
+
 ## 동작 원리
 
 ```
@@ -68,10 +81,11 @@
 ### 3단계 — 부가 기능
 
 - [x] 잠금 모드 — **양손 엄지 Up 1.5초 홀드**로 전체 인식 ON/OFF 토글 ✅
-- [ ] 미디어 재생/일시정지 — `pyautogui.press('playpause')`
-- [ ] 스크린샷 — `pyautogui.screenshot()` + 저장 경로 알림
-- [ ] 밝기 조절 — `screen-brightness-control` 패키지
-- [ ] 제스처 커스터마이징 UI
+- [x] PyInstaller 단독 exe 배포 — `dist/Gomis/Gomis.exe`, GitHub Releases v0.1.0 ✅
+- ~~미디어 재생/일시정지~~ (추가 개발 계획 없음)
+- ~~스크린샷 캡처~~ (추가 개발 계획 없음)
+- ~~밝기 조절~~ (추가 개발 계획 없음)
+- ~~제스처 커스터마이징 UI~~ (추가 개발 계획 없음)
 
 ---
 
@@ -97,7 +111,7 @@
 ## 프로젝트 구조
 
 ```
-javis-prj/
+gomis-prj/
 ├── main.py                    # 앱 엔트리포인트 + HTTP 브리지 서버 (포트 7777)
 ├── core/
 │   ├── camera.py              # OpenCV 카메라 캡처
@@ -123,7 +137,8 @@ javis-prj/
 ├── config/
 │   └── settings.json          # 카메라·제스처 감도·기능 ON/OFF·사용자 이름
 ├── docs/
-│   └── blog-draft-01.html     # 개발 블로그 초안
+│   ├── index.html             # 배포용 랜딩 페이지 (GitHub Pages)
+│   └── blog-draft-01.html     # 개발 블로그 포스트
 ├── tasks/
 │   ├── todo.md                # 개발 체크리스트
 │   └── progress.md            # 작업 기록
@@ -184,14 +199,39 @@ javis-prj/
 
 ## 변경 이력
 
-### 2026-05-27 — 대시보드 UI 완성 + PyInstaller 빌드
+### 2026-05-28 — Gomis UI 개선 + 음성 타이핑 확장
 
 | 항목 | 내용 |
 | ---- | ---- |
+| **Gomis 배경 블랙** | `scene.background` 푸른끼 제거 → 순수 검정(0x000000) 우주 느낌 |
+| **먼지 파티클 개선** | 색상 회색(0x9090a8)·opacity 0.38로 발광 억제 / 크기 3배(0.33) / 일방향 회전 → 각 파티클 무중력 랜덤 방향 이동 |
+| **음성 타이핑 시간 확장** | `MAX_RECORD_SEC` 60초 → **300초(5분)** — 최대 약 3,000~4,500자 분량 |
+| **VoiceTyper 자동 종료 타이머** | `start(max_sec, on_auto_stop)` 추가 — 시간 초과 시 자동 `stop_and_transcribe()` + 상태 콜백 |
+| **중복 종료 방지** | `stop_and_transcribe()` 진입 시 `_recording` 플래그 가드 + 타이머 자동 취소 |
+| **settings.json Whisper 연결** | `model`/`language` 하드코딩 제거 → `config["whisper"]` 값 반영 (`small`, `ko`) |
+| **MediaPipe 로그 억제** | `os.environ.setdefault("GLOG_minloglevel", "3")` — clearcut 업로드 에러 노이즈 제거 |
+
+---
+
+### 2026-05-28 — 배포 완성
+
+| 항목 | 내용 |
+| ---- | ---- |
+| **PyInstaller 재빌드** | 보안 패치·성능 개선 반영 (백그라운드 캡처 스레드, RotatingFileHandler, Content-Length 제한, CORS null 수정) |
+| **GitHub Releases v0.1.0** | `Gomis-win64-v0.1.0.zip` (~979 MB) 공개 |
+| **랜딩 페이지** | `docs/index.html` DOWNLOAD 버튼 실제 Release URL 연결 |
+| **블로그 포스트** | `docs/blog-draft-01.html` 배포 과정 + 마무리 섹션 추가 완성 |
+
+---
+
+### 2026-05-27 — 대시보드 UI 완성 + PyInstaller 빌드
+
+| 항목                    | 내용                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- |
 | **9개 제스처 카드 SVG** | 커서·클릭·스크롤·줌·볼륨·창전환·음성타이핑·AI대화·잠금 — 각 카드 손 모양 직접 SVG 작화 |
-| **이름 변경 모달** | 온보딩과 별도 분리 — 우측 상단 ✏️ 버튼, 애니메이션 fade in/out |
-| **파티클 시스템 개선** | 격자 기반 + sin/cos 부유 애니메이션, 커서 접근 시 이차 반발력 |
-| **PyInstaller 빌드** | `gomis.spec` 작성 — MediaPipe·Qt·Whisper 포함 단독 실행 파일 |
+| **이름 변경 모달**      | 온보딩과 별도 분리 — 우측 상단 ✏️ 버튼, 애니메이션 fade in/out                         |
+| **파티클 시스템 개선**  | 격자 기반 + sin/cos 부유 애니메이션, 커서 접근 시 이차 반발력                          |
+| **PyInstaller 빌드**    | `gomis.spec` 작성 — MediaPipe·Qt·Whisper 포함 단독 실행 파일                           |
 
 ### 2026-05-26 — Gomis 대시보드 개선 + 잠금 모드 구현
 
@@ -256,6 +296,17 @@ javis-prj/
 
 ## 설치 및 실행
 
+### exe로 실행 (권장 — venv 불필요)
+
+1. [GitHub Releases](https://github.com/hkmin3827/gomis-python/releases/tag/v0.1.0)에서 `Gomis-win64-v0.1.0.zip` 다운로드
+2. ZIP 압축 해제
+3. `Gomis\Gomis.exe` 더블클릭 실행
+4. Windows SmartScreen 경고 → "추가 정보" → "실행"
+
+> Claude 대화 기능 사용 시 `claude login`으로 사전 로그인 필요
+
+### 소스에서 실행 (개발 용도)
+
 ```powershell
 # 1. 가상환경 생성 및 활성화
 python -m venv venv
@@ -264,11 +315,7 @@ python -m venv venv
 # 2. 패키지 설치
 pip install -r requirements.txt
 
-# 3. 환경변수 설정
-copy .env.example .env
-# .env 파일에 ANTHROPIC_API_KEY 입력
-
-# 4. 실행
+# 3. 실행
 python main.py
 
 # 웹캠 + 랜드마크 테스트
@@ -276,3 +323,11 @@ python test_camera.py
 ```
 
 > **주의:** 실행 전 반드시 가상환경(`venv`) 활성화 확인
+
+### exe 직접 빌드
+
+```powershell
+.\venv\Scripts\Activate.ps1
+pyinstaller gomis.spec --clean
+# 결과: dist\Gomis\Gomis.exe (10~30분 소요)
+```

@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import signal
@@ -5,6 +6,9 @@ import threading
 import time
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+# MediaPipe 내부 Google 원격 측정 에러 로그 억제 (1회)
+os.environ.setdefault("GLOG_minloglevel", "3")
 
 # torch DLL을 Qt보다 먼저 초기화해야 WinError 1114 방지됨
 # Qt가 DLL 검색 경로를 변경하기 전에 c10.dll 등을 로드
@@ -85,11 +89,16 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
                 for k in float_keys:
                     if k in payload:
                         live_settings[k] = float(payload[k])
+                if "auto_enter" in payload:
+                    live_settings["auto_enter"] = bool(payload["auto_enter"])
                 try:
                     cfg = json.loads(config_path.read_text(encoding="utf-8"))
                     cfg["gesture"]["scroll_speed"] = live_settings["scroll_speed"]
                     cfg["gesture"]["volume_step"]  = live_settings["volume_step"]
                     cfg["gesture"]["zoom_delta"]   = live_settings["zoom_delta"]
+                    if "voice" not in cfg:
+                        cfg["voice"] = {}
+                    cfg["voice"]["auto_enter"] = live_settings["auto_enter"]
                     config_path.write_text(
                         json.dumps(cfg, ensure_ascii=False, indent=2),
                         encoding="utf-8"
@@ -131,10 +140,12 @@ def main():
 
     # 감도 설정 — 대시보드 세팅 패널에서 실시간 변경 가능
     gesture_cfg = config.get("gesture", {})
+    voice_cfg   = config.get("voice", {})
     live_settings = {
         "scroll_speed": gesture_cfg.get("scroll_speed", 40),
         "volume_step":  gesture_cfg.get("volume_step", 3),
         "zoom_delta":   gesture_cfg.get("zoom_delta", 20),
+        "auto_enter":   voice_cfg.get("auto_enter", True),
     }
 
     _start_server(CONFIG_PATH, app_state, live_settings)
@@ -165,7 +176,12 @@ def main():
     volume      = VolumeController()
     windows     = WindowSwitcher()
     zoom        = ZoomController()
-    voice_typer = VoiceTyper(model_name="small")
+
+    whisper_cfg = config.get("whisper", {})
+    voice_typer = VoiceTyper(
+        model_name=whisper_cfg.get("model", "small"),
+        language=whisper_cfg.get("language", "ko"),
+    )
 
     # 컨트롤러에 live_settings 주입 (딕셔너리 참조 공유 → 즉시 반영)
     scroll.set_settings(live_settings)
@@ -233,7 +249,12 @@ def main():
         if clap == GESTURE_VOICE_START and voice_state["status"] == "idle" \
                 and claude_state["status"] == "idle":
             voice_state["status"] = "recording"
-            voice_typer.start()
+
+            def _on_voice_auto_stop():
+                if voice_state["status"] == "recording":
+                    voice_state["status"] = "idle"
+
+            voice_typer.start(on_auto_stop=_on_voice_auto_stop)
             tray.notify("Gomis 🎤", "녹음 중… 다시 박수치면 종료")
 
         elif clap == GESTURE_VOICE_END and voice_state["status"] == "recording":
@@ -242,7 +263,7 @@ def main():
 
             def _do_transcribe():
                 try:
-                    text = voice_typer.stop_and_transcribe(auto_enter=True)
+                    text = voice_typer.stop_and_transcribe(auto_enter=live_settings["auto_enter"])
                     if text:
                         tray.notify(" ✅", f"입력: {text[:40]}")
                     else:
@@ -266,7 +287,7 @@ def main():
             def _start_recording():
                 claude_state["status"] = "recording"
                 dashboard.set_state("listening")
-                voice_typer.start()
+                voice_typer.start(max_sec=60)
                 tray.notify("Gomis 🎤", "녹음 중… 다시 손 모으면 전송")
 
             _name    = app_state["user_name"]

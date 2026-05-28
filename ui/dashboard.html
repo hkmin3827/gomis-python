@@ -490,6 +490,58 @@
       .sp-save-btn:hover { opacity: 0.75; }
       .sp-save-btn:disabled { opacity: 0.35; }
 
+      /* 토글 스위치 */
+      .sp-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(0,0,0,0.035);
+      }
+      .sp-toggle-label {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+      }
+      .sp-toggle-desc {
+        font-size: 10px;
+        color: rgba(10,10,10,0.45);
+        margin-top: 2px;
+      }
+      .sp-toggle {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        flex-shrink: 0;
+      }
+      .sp-toggle input { opacity: 0; width: 0; height: 0; }
+      .sp-toggle-track {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.15);
+        border-radius: 11px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .sp-toggle-track::after {
+        content: "";
+        position: absolute;
+        top: 3px; left: 3px;
+        width: 16px; height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+      .sp-toggle input:checked + .sp-toggle-track {
+        background: #0a0a0a;
+      }
+      .sp-toggle input:checked + .sp-toggle-track::after {
+        transform: translateX(18px);
+      }
+
       /* ─── HERO ───────────────────────────────────────── */
       #hero {
         position: relative;
@@ -1004,6 +1056,20 @@
             <span class="sp-val" id="valZoom">20</span>
             <button class="sp-reset" data-slider="slZoom" data-val="valZoom" data-default="20" title="초기화">↺</button>
           </div>
+        </div>
+
+        <!-- 음성 타이핑 옵션 -->
+        <div class="sp-section-title" style="margin-top:22px;">음성 타이핑</div>
+
+        <div class="sp-toggle-row">
+          <div>
+            <div class="sp-toggle-label">자동 Enter</div>
+            <div class="sp-toggle-desc">음성 인식 완료 후 Enter 자동 입력</div>
+          </div>
+          <label class="sp-toggle">
+            <input type="checkbox" id="toggleAutoEnter" checked />
+            <span class="sp-toggle-track"></span>
+          </label>
         </div>
 
         <div class="sp-save-wrap">
@@ -1933,7 +1999,7 @@
             포커스된 입력창에 음성으로 바로 입력할 수 있습니다.
             <ul class="rv-list">
               <li>양손 박수 제스처로 음성 인식을 시작합니다</li>
-              <li>Whisper가 로컬에서 음성을 텍스트로 변환합니다</li>
+              <li>Whisper <strong>small</strong> 모델이 로컬에서 음성을 텍스트로 변환합니다 — 외부 서버 전송 없음</li>
               <li>
                 커서가 깜빡이는 <strong>포커스된 텍스트 입력창</strong>에 변환된
                 텍스트가 자동 입력됩니다
@@ -1947,6 +2013,10 @@
                 동작합니다
               </li>
               <li>다시 양손 박수를 치면 인식이 종료됩니다</li>
+              <li>
+                <strong>최대 녹음 시간 5분(300초)</strong> — 초과 시 자동 종료 및 입력.
+                5분 기준 약 <strong>3,000~4,500자</strong> 분량 처리 가능
+              </li>
             </ul>
           </div>
         </div>
@@ -2081,10 +2151,12 @@
             setSliderVal(SLIDER_DEFS[0], s.scroll_speed ?? 40);
             setSliderVal(SLIDER_DEFS[1], s.volume_step  ?? 3);
             setSliderVal(SLIDER_DEFS[2], s.zoom_delta   ?? 20);
+            document.getElementById("toggleAutoEnter").checked = s.auto_enter ?? true;
           }
         } catch (_) {
           // 앱 미실행 시 settings.json 기본값 유지
           SLIDER_DEFS.forEach(d => setSliderVal(d, d.default));
+          document.getElementById("toggleAutoEnter").checked = true;
         }
         spPanel.style.display = "flex";
         requestAnimationFrame(() => {
@@ -2105,6 +2177,7 @@
         SLIDER_DEFS.forEach(d => {
           payload[d.key] = +document.getElementById(d.sliderId).value;
         });
+        payload.auto_enter = document.getElementById("toggleAutoEnter").checked;
         try {
           await fetch("http://localhost:7777/save-settings", {
             method: "POST",

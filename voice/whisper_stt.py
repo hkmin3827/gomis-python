@@ -31,29 +31,32 @@ class VoiceTyper:
     """녹음 시작/종료 후 Whisper로 텍스트 변환 → 현재 포커스 창에 타이핑."""
 
     SAMPLE_RATE    = 16_000
-    MAX_RECORD_SEC = 60  # 최대 녹음 시간 — 초과분은 자동 무시
+    MAX_RECORD_SEC = 300  # 최대 녹음 시간 — 초과분은 자동 무시 (5분)
 
-    def __init__(self, model_name: str = "small"):
+    def __init__(self, model_name: str = "small", language: str = "ko"):
         self._model_name = model_name
+        self._language = language
         self._model = None
         self._recording = False
         self._chunks: list[np.ndarray] = []
         self._stream = None
         self._lock = threading.Lock()
         self._model_ready = threading.Event()
+        self._auto_stop_timer: threading.Timer | None = None
 
         # 앱 시작 시 백그라운드에서 미리 로드 → start() 호출 시 대기 없이 즉시 스트림 시작 가능
         threading.Thread(target=self._preload_model, daemon=True).start()
-        log.info(f"VoiceTyper 초기화 완료 (model={model_name}) — 백그라운드 모델 로드 시작")
+        log.info(f"VoiceTyper 초기화 완료 (model={model_name}, language={language}) — 백그라운드 모델 로드 시작")
 
     # ── 공개 API ──────────────────────────────────────────────────
 
-    def start(self) -> None:
-        """녹음 시작. 모델이 아직 로딩 중이면 완료될 때까지 대기 후 즉시 스트림 시작."""
+    def start(self, max_sec: int = MAX_RECORD_SEC, auto_enter: bool = True,
+              on_auto_stop: "callable | None" = None) -> None:
+        """녹음 시작. max_sec 초 후 자동 종료. on_auto_stop 콜백으로 상태 업데이트 가능."""
         log.info("녹음 시작 요청")
         if not self._model_ready.is_set():
             log.info("모델 로딩 대기 중…")
-        self._model_ready.wait()  # 이미 로드됐으면 즉시 통과
+        self._model_ready.wait()
         if self._model is None:
             raise RuntimeError("Whisper 모델 로드 실패")
 
@@ -71,11 +74,30 @@ class VoiceTyper:
         self._stream.start()
         log.info("녹음 스트림 시작됨")
 
+        # 자동 종료 타이머
+        def _timeout():
+            log.info(f"자동 종료 타이머 발동 ({max_sec}초)")
+            self.stop_and_transcribe(auto_enter=auto_enter)
+            if on_auto_stop:
+                on_auto_stop()
+
+        self._auto_stop_timer = threading.Timer(max_sec, _timeout)
+        self._auto_stop_timer.daemon = True
+        self._auto_stop_timer.start()
+        log.info(f"자동 종료 타이머 설정: {max_sec}초")
+
     def stop_and_transcribe(self, auto_enter: bool = True) -> str:
         """녹음 종료 → Whisper 추론 → 클립보드 붙여넣기 + Enter."""
         log.info("녹음 종료 요청")
         with self._lock:
+            if not self._recording:
+                return ""  # 이미 종료됨 (타이머/수동 중복 호출 방지)
             self._recording = False
+
+        # 타이머가 살아있으면 취소
+        if self._auto_stop_timer is not None:
+            self._auto_stop_timer.cancel()
+            self._auto_stop_timer = None
 
         if self._stream is not None:
             self._stream.stop()
@@ -147,7 +169,7 @@ class VoiceTyper:
             log.info("Whisper 모델 로드 완료")
 
     def _transcribe(self, audio: np.ndarray) -> str:
-        result = self._model.transcribe(audio, language="ko", fp16=False)
+        result = self._model.transcribe(audio, language=self._language, fp16=False)
         return result["text"].strip()
 
     @staticmethod
