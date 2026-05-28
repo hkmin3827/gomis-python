@@ -7,14 +7,17 @@
 
 ## 다운로드
 
-| 플랫폼 | 버전 | 링크 |
-| ------ | ---- | ---- |
-| Windows 10 / 11 64-bit | v0.1.0 (~979 MB) | [GitHub Releases →](https://github.com/hkmin3827/gomis-python/releases/tag/v0.1.0) |
+[랜딩 페이지](https://hkmin3827.github.io/gomis-python/)
+
+| 플랫폼                 | 버전             | 링크                                                                               |
+| ---------------------- | ---------------- | ---------------------------------------------------------------------------------- |
+| Windows 10 / 11 64-bit | v1.0.0 (~355 MB) | [다운로드 →](https://github.com/hkmin3827/gomis-python/releases/download/v1.0.0/Gomis-win64-v1.0.0.zip) |
 
 > **실행 전 확인사항**
+>
 > - exe 첫 실행 시 **Windows SmartScreen** 경고창 → "추가 정보" → "실행" 클릭
 > - 웹캠 필수 (USB / 내장 무관)
-> - **Claude 대화** 기능 사용 시 `claude` CLI 로그인 필요 (`claude login`)
+> - **Claude 대화** 기능 사용 시 `claude` CLI 설치 및 로그인 필요 (`claude login`)
 
 ---
 
@@ -81,7 +84,7 @@
 ### 3단계 — 부가 기능
 
 - [x] 잠금 모드 — **양손 엄지 Up 1.5초 홀드**로 전체 인식 ON/OFF 토글 ✅
-- [x] PyInstaller 단독 exe 배포 — `dist/Gomis/Gomis.exe`, GitHub Releases v0.1.0 ✅
+- [x] PyInstaller 단독 exe 배포 — `dist/Gomis/Gomis.exe`, GitHub Releases v1.0.0 ✅
 - ~~미디어 재생/일시정지~~ (추가 개발 계획 없음)
 - ~~스크린샷 캡처~~ (추가 개발 계획 없음)
 - ~~밝기 조절~~ (추가 개발 계획 없음)
@@ -201,38 +204,38 @@ gomis-prj/
 
 ### 2026-05-28 — Claude CLI 에러 응답 분기 처리 (릴리즈 사전 수정)
 
-| 항목 | 내용 |
-| ---- | ---- |
-| **ClaudeResult 반환 타입** | `ask_claude()` 반환을 `str` → `ClaudeResult` 데이터클래스로 변경. `text`(TTS 음성), `error_type`(None=정상), `detail`(다이얼로그 상세) 필드 |
-| **NOT_INSTALLED** | `FileNotFoundError` 감지 → 트레이 알림 + QMessageBox 설치 안내 (PowerShell 명령어 포함) + TTS |
-| **NOT_AUTHENTICATED** | stderr/stdout에 `login`, `auth` 등 키워드 감지 → "Claude 회원 연결이 필요합니다" 트레이 알림 + 로그인 안내 다이얼로그 + TTS |
-| **TOKEN_EXHAUSTED** | `credit`, `quota`, `exhausted` 등 키워드 감지 → "이용 한도 초과, 초기화 이전까지 응답 어려움" 트레이 알림 + TTS |
+| 항목                          | 내용                                                                                                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ClaudeResult 반환 타입**    | `ask_claude()` 반환을 `str` → `ClaudeResult` 데이터클래스로 변경. `text`(TTS 음성), `error_type`(None=정상), `detail`(다이얼로그 상세) 필드               |
+| **NOT_INSTALLED**             | `FileNotFoundError` 감지 → 트레이 알림 + QMessageBox 설치 안내 (PowerShell 명령어 포함) + TTS                                                             |
+| **NOT_AUTHENTICATED**         | stderr/stdout에 `login`, `auth` 등 키워드 감지 → "Claude 회원 연결이 필요합니다" 트레이 알림 + 로그인 안내 다이얼로그 + TTS                               |
+| **TOKEN_EXHAUSTED**           | `credit`, `quota`, `exhausted` 등 키워드 감지 → "이용 한도 초과, 초기화 이전까지 응답 어려움" 트레이 알림 + TTS                                           |
 | **Qt 스레드 안전 다이얼로그** | `GomisDashboard._dialog_signal = pyqtSignal(str, str, str)` 추가 — 백그라운드 스레드에서 `show_error_dialog()` 호출 시 메인 스레드에서 `QMessageBox` 표시 |
 
 ---
 
 ### 2026-05-28 — Gomis UI 개선 + 음성 타이핑 확장
 
-| 항목 | 내용 |
-| ---- | ---- |
-| **Gomis 배경 블랙** | `scene.background` 푸른끼 제거 → 순수 검정(0x000000) 우주 느낌 |
-| **먼지 파티클 개선** | 색상 회색(0x9090a8)·opacity 0.38로 발광 억제 / 크기 3배(0.33) / 일방향 회전 → 각 파티클 무중력 랜덤 방향 이동 |
-| **음성 타이핑 시간 확장** | `MAX_RECORD_SEC` 60초 → **300초(5분)** — 최대 약 3,000~4,500자 분량 |
-| **VoiceTyper 자동 종료 타이머** | `start(max_sec, on_auto_stop)` 추가 — 시간 초과 시 자동 `stop_and_transcribe()` + 상태 콜백 |
-| **중복 종료 방지** | `stop_and_transcribe()` 진입 시 `_recording` 플래그 가드 + 타이머 자동 취소 |
-| **settings.json Whisper 연결** | `model`/`language` 하드코딩 제거 → `config["whisper"]` 값 반영 (`small`, `ko`) |
-| **MediaPipe 로그 억제** | `os.environ.setdefault("GLOG_minloglevel", "3")` — clearcut 업로드 에러 노이즈 제거 |
+| 항목                            | 내용                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Gomis 배경 블랙**             | `scene.background` 푸른끼 제거 → 순수 검정(0x000000) 우주 느낌                                                |
+| **먼지 파티클 개선**            | 색상 회색(0x9090a8)·opacity 0.38로 발광 억제 / 크기 3배(0.33) / 일방향 회전 → 각 파티클 무중력 랜덤 방향 이동 |
+| **음성 타이핑 시간 확장**       | `MAX_RECORD_SEC` 60초 → **300초(5분)** — 최대 약 3,000~4,500자 분량                                           |
+| **VoiceTyper 자동 종료 타이머** | `start(max_sec, on_auto_stop)` 추가 — 시간 초과 시 자동 `stop_and_transcribe()` + 상태 콜백                   |
+| **중복 종료 방지**              | `stop_and_transcribe()` 진입 시 `_recording` 플래그 가드 + 타이머 자동 취소                                   |
+| **settings.json Whisper 연결**  | `model`/`language` 하드코딩 제거 → `config["whisper"]` 값 반영 (`small`, `ko`)                                |
+| **MediaPipe 로그 억제**         | `os.environ.setdefault("GLOG_minloglevel", "3")` — clearcut 업로드 에러 노이즈 제거                           |
 
 ---
 
 ### 2026-05-28 — 배포 완성
 
-| 항목 | 내용 |
-| ---- | ---- |
-| **PyInstaller 재빌드** | 보안 패치·성능 개선 반영 (백그라운드 캡처 스레드, RotatingFileHandler, Content-Length 제한, CORS null 수정) |
-| **GitHub Releases v0.1.0** | `Gomis-win64-v0.1.0.zip` (~979 MB) 공개 |
-| **랜딩 페이지** | `docs/index.html` DOWNLOAD 버튼 실제 Release URL 연결 |
-| **블로그 포스트** | `docs/blog-draft-01.html` 배포 과정 + 마무리 섹션 추가 완성 |
+| 항목                       | 내용                                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **PyInstaller 재빌드**     | 보안 패치·성능 개선 반영 (백그라운드 캡처 스레드, RotatingFileHandler, Content-Length 제한, CORS null 수정) |
+| **GitHub Releases v0.1.0** | `Gomis-win64-v0.1.0.zip` (~979 MB) 공개                                                                     |
+| **랜딩 페이지**            | `docs/index.html` DOWNLOAD 버튼 실제 Release URL 연결                                                       |
+| **블로그 포스트**          | `docs/blog-draft-01.html` 배포 과정 + 마무리 섹션 추가 완성                                                 |
 
 ---
 
@@ -310,7 +313,7 @@ gomis-prj/
 
 ### exe로 실행 (권장 — venv 불필요)
 
-1. [GitHub Releases](https://github.com/hkmin3827/gomis-python/releases/tag/v0.1.0)에서 `Gomis-win64-v0.1.0.zip` 다운로드
+1. [GitHub Releases](https://github.com/hkmin3827/gomis-python/releases/tag/v1.0.0)에서 `Gomis-win64-v1.0.0.zip` 다운로드
 2. ZIP 압축 해제
 3. `Gomis\Gomis.exe` 더블클릭 실행
 4. Windows SmartScreen 경고 → "추가 정보" → "실행"
