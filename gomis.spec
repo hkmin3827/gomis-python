@@ -28,10 +28,9 @@ a = Analysis(
         'PyQt5.QtWebEngineCore',
         'PyQt5.QtWebEngine',
         'PyQt5.QtNetwork',
-        # MediaPipe
+        # MediaPipe (0.10+ 구조: mediapipe.python 패키지 없음, tasks만 존재)
         'mediapipe',
-        'mediapipe.python',
-        'mediapipe.python.solutions',
+        'mediapipe.tasks',
         'mediapipe.tasks.python',
         'mediapipe.tasks.python.vision',
         # pycaw
@@ -54,10 +53,12 @@ a = Analysis(
         'whisper.model',
         'whisper.transcribe',
         'whisper.tokenizer',
+        # matplotlib (mediapipe 내부 의존성)
+        'matplotlib',
+        'matplotlib.pyplot',
     ],
     excludes=[
         # 사용하지 않는 대형 패키지
-        'matplotlib',
         'scipy',
         'pandas',
         'IPython',
@@ -85,6 +86,11 @@ a = Analysis(
         'torch.onnx',
         'torch.quantization',
         'torch.profiler',
+        'torch.utils.tensorboard',
+        'tensorboard',
+        # numba/llvmlite — 프로젝트 미사용, tbb12.dll 의존성 차단
+        'numba',
+        'llvmlite',
     ],
     noarchive=False,
     optimize=1,
