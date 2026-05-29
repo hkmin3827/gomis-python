@@ -5,26 +5,22 @@ pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
 
 # ── 커서 감도 매핑 ────────────────────────────────────────────────
-# speed=70 이 원래 기본값(smoothing=0.70, LR=0.20, TB=0.30)과 일치하는 앵커
-# speed  1 → smoothing=0.95, LR=0.10, TB=0.15  (느리고 정밀)
-# speed 70 → smoothing=0.70, LR=0.20, TB=0.30  (기본값 — 원래 하드코딩 값)
-# speed100 → smoothing=0.55, LR=0.30, TB=0.35  (빠름)
+# speed 1-100 선형 매핑
 #
-# 마진이 커질수록 active zone이 작아져 → 같은 손 움직임으로 화면을 더 빠르게 커버
+# 마진: LR·TB 모두 25~35% 구간
+#   - 25% 미만이면 MediaPipe 감지 불안정 구간에 걸려 화면 모서리 도달 불가
+#   - 마진이 클수록 active zone이 좁아져 손을 조금만 움직여도 화면 전체 커버 → 빠름
+#
+# speed  1 → smoothing=0.95, LR=0.25, TB=0.25  (느리고 정밀)
+# speed 50 → smoothing=0.75, LR=0.30, TB=0.30  (중간)
+# speed100 → smoothing=0.55, LR=0.35, TB=0.35  (빠름)
 
 def _speed_params(speed: int):
     s = max(1, min(100, int(speed)))
-    if s <= 70:
-        t = (s - 1) / 69          # 0.0(s=1) → 1.0(s=70)
-        smoothing  = 0.95 - t * (0.95 - 0.70)   # 0.95 → 0.70
-        margin_lr  = 0.10 + t * (0.20 - 0.10)   # 0.10 → 0.20
-        margin_tb  = 0.15 + t * (0.30 - 0.15)   # 0.15 → 0.30
-    else:
-        t = (s - 70) / 30          # 0.0(s=70) → 1.0(s=100)
-        smoothing  = 0.70 - t * (0.70 - 0.55)   # 0.70 → 0.55
-        margin_lr  = 0.20 + t * (0.30 - 0.20)   # 0.20 → 0.30
-        margin_tb  = 0.30 + t * (0.35 - 0.30)   # 0.30 → 0.35
-    return smoothing, margin_lr, margin_tb
+    t = (s - 1) / 99.0             # 0.0(s=1) → 1.0(s=100)
+    smoothing = 0.95 - t * 0.40    # 0.95 → 0.55
+    margin    = 0.25 + t * 0.10    # 0.25 → 0.35  (LR·TB 동일)
+    return smoothing, margin, margin
 
 
 class CursorController:

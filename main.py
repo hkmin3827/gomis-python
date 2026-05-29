@@ -77,12 +77,14 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
 
             if self.path == "/start":
                 app_state["running"] = True
-                app_state["show_gomis"] = True   # Qt 메인 스레드에서 감지 후 표시
+                app_state["show_gomis"] = True
+                app_state["show_tray"]  = True
                 self._respond(200, '{"ok":true}')
 
             elif self.path == "/stop":
                 app_state["running"] = False
-                app_state["hide_gomis"] = True   # Qt 메인 스레드에서 감지 후 숨김
+                app_state["hide_gomis"] = True
+                app_state["hide_tray"]  = True
                 self._respond(200, '{"ok":true}')
 
             elif self.path == "/set-name":
@@ -160,6 +162,8 @@ def main():
         "user_name":  config.get("user_name", "").strip(),
         "show_gomis": False,
         "hide_gomis": False,
+        "show_tray":  False,
+        "hide_tray":  False,
     }
 
     # 감도 설정 — 대시보드 세팅 패널에서 실시간 변경 가능
@@ -313,7 +317,6 @@ def main():
             # 인사말 TTS → 완료 후 녹음 시작 (Claude 호출 없음)
             claude_state["status"] = "greeting"
             gomis_dash.set_state("speaking")
-            tray.notify("Gomis 🤖", "Gomis 인사 중…")
 
             def _start_recording():
                 # TTS 종료 직후 오디오 드라이버 전환 딜레이 — input overflow 방지
@@ -321,7 +324,6 @@ def main():
                 claude_state["status"] = "recording"
                 gomis_dash.set_state("listening")
                 voice_typer.start(max_sec=60)
-                tray.notify("Gomis 🎤", "녹음 중… 다시 손 모으면 전송")
 
             _name    = app_state["user_name"]
             greeting = f"네 {_name}님 무엇을 도와드릴까요?" if _name else "네 무엇을 도와드릴까요?"
@@ -330,17 +332,14 @@ def main():
         elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
             claude_state["status"] = "thinking"
             gomis_dash.set_state("thinking")
-            tray.notify("Gomis", "Claude 생각 중…")
 
             def _do_claude():
                 try:
                     text = voice_typer.stop_and_transcribe(auto_enter=False, do_type=False)
                     if not text:
-                        tray.notify("Gomis", "인식된 텍스트 없음")
                         claude_state["status"] = "idle"
                         gomis_dash.set_state("idle")
                         return
-                    tray.notify("Gomis 🤖", f"질문: {text[:40]}")
                     result = ask_claude(text)
 
                     if not result.ok:
@@ -376,7 +375,6 @@ def main():
                         return
 
                     if result.text:
-                        tray.notify("Gomis 💬", f"{result.text[:60]}")
                         gomis_dash.set_state("speaking")
 
                         def _after_response():
@@ -385,7 +383,6 @@ def main():
 
                         speak_async(result.text, on_done=_after_response)
                     else:
-                        tray.notify("Gomis", "Claude 응답 없음")
                         claude_state["status"] = "idle"
                         gomis_dash.set_state("idle")
                 except Exception as e:
@@ -444,7 +441,7 @@ def main():
     tray.dashboard_toggled.connect(_open_dashboard)
     tray.gomis_toggled.connect(lambda: gomis_dash.show() if gomis_dash.isHidden() else gomis_dash.raise_())
 
-    # HTTP 서버(별도 스레드) → Qt 메인 스레드: show_gomis / hide_gomis 플래그 폴링
+    # HTTP 서버(별도 스레드) → Qt 메인 스레드: 플래그 폴링
     def _poll_app_state():
         if app_state.get("show_gomis"):
             app_state["show_gomis"] = False
@@ -453,15 +450,20 @@ def main():
         if app_state.get("hide_gomis"):
             app_state["hide_gomis"] = False
             gomis_dash.hide()
+        if app_state.get("show_tray"):
+            app_state["show_tray"] = False
+            tray.show()
+            tray.notify("Gomis 실행 중", "트레이 아이콘으로 관리합니다.")
+        if app_state.get("hide_tray"):
+            app_state["hide_tray"] = False
+            tray.hide()
 
     _state_timer = QTimer()
     _state_timer.timeout.connect(_poll_app_state)
-    _state_timer.start(200)  # 200ms 간격 폴링
+    _state_timer.start(200)
 
-    # 앱 시작: 대시보드만 오픈, Gomis AI 창은 START 버튼 시 표시
+    # 앱 시작: 대시보드만 오픈. 트레이/Gomis 창은 START 버튼 누를 때 표시
     main_dashboard.show()
-    tray.show()
-    tray.notify("Gomis 시작", "대시보드 START 버튼으로 모션 인식을 시작하세요.")
 
     sys.exit(app.exec_())
 
