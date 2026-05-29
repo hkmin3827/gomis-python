@@ -3,6 +3,7 @@ Whisper 기반 음성 인식 + 타이핑 모듈.
 sounddevice로 실시간 녹음 → Whisper 로컬 추론 → 클립보드 붙여넣기 + Enter.
 """
 import logging
+import sys
 import threading
 import time
 from logging.handlers import RotatingFileHandler
@@ -10,7 +11,15 @@ from pathlib import Path
 
 import numpy as np
 
-LOG_PATH = Path(__file__).parent.parent / "tasks" / "voice.log"
+if getattr(sys, 'frozen', False):
+    # 빌드된 exe — _internal/logs/ 에 기록
+    LOG_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent)) / "logs"
+else:
+    # 개발 환경 — 프로젝트 루트/tasks/
+    LOG_DIR = Path(__file__).parent.parent / "tasks"
+
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_PATH = LOG_DIR / "voice.log"
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -48,8 +57,7 @@ class VoiceTyper:
         threading.Thread(target=self._preload_model, daemon=True).start()
         log.info(f"VoiceTyper 초기화 완료 (model={model_name}, language={language}) — 백그라운드 모델 로드 시작")
 
-    # ── 공개 API ──────────────────────────────────────────────────
-
+    # ── 공개 API ──
     def start(self, max_sec: int = MAX_RECORD_SEC, auto_enter: bool = True,
               on_auto_stop: "callable | None" = None) -> None:
         """녹음 시작. max_sec 초 후 자동 종료. on_auto_stop 콜백으로 상태 업데이트 가능."""
@@ -142,8 +150,7 @@ class VoiceTyper:
             self._stream = None
         log.info("VoiceTyper 종료")
 
-    # ── 내부 구현 ─────────────────────────────────────────────────
-
+    # ── 내부 구현 ──
     def _audio_callback(self, indata, frames, time_info, status):
         if status:
             log.warning(f"오디오 콜백 status: {status}")
