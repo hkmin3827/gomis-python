@@ -41,7 +41,8 @@ class PreviewWindow(QWidget):
 
     def _tick(self):
         result = self._runner()
-        if result is None:
+        if result is None or self.isHidden():
+            # 숨겨진 상태: 이미지 변환/렌더링 비용 생략
             return
 
         frame, gesture, state, handedness = result
@@ -67,7 +68,7 @@ class PreviewWindow(QWidget):
         rgb   = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
         img   = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
-        return QPixmap.fromImage(img).scaled(640, 480, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        return QPixmap.fromImage(img).scaled(640, 480, Qt.KeepAspectRatio)
 
     def closeEvent(self, event):
         event.ignore()

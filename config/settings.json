@@ -10,6 +10,7 @@
     "sensitivity": 0.5,
     "cursor_smoothing": 0.7,
     "click_threshold": 0.04,
+    "cursor_speed": 70,
     "scroll_speed": 40,
     "volume_step": 3.0,
     "zoom_delta": 20

@@ -6,9 +6,16 @@ import threading
 import time
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
+
+class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """요청마다 별도 스레드 처리 — 한 요청이 느려도 다음 요청 차단하지 않음."""
+    daemon_threads = True
 
 # MediaPipe 내부 Google 원격 측정 에러 로그 억제 (1회)
 os.environ.setdefault("GLOG_minloglevel", "3")
+
 
 # PyInstaller 빌드 시 torch/lib 디렉토리를 DLL 검색 경로에 먼저 등록해야
 # c10.dll WinError 1114 (DLL 초기화 실패) 방지됨.
@@ -38,9 +45,13 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
 
         def _respond(self, code: int, body: str = ""):
             data = body.encode()
+            # file:// 로컬 페이지만 허용 (QtWebEngine은 Origin: file:// 전송)
+            origin = self.headers.get("Origin", "")
+            allowed = origin if (origin == "null" or origin.startswith("file://")) else ""
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "null")
+            if allowed:
+                self.send_header("Access-Control-Allow-Origin", allowed)
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.send_header("Content-Length", str(len(data)))
@@ -66,10 +77,12 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
 
             if self.path == "/start":
                 app_state["running"] = True
+                app_state["show_gomis"] = True   # Qt 메인 스레드에서 감지 후 표시
                 self._respond(200, '{"ok":true}')
 
             elif self.path == "/stop":
                 app_state["running"] = False
+                app_state["hide_gomis"] = True   # Qt 메인 스레드에서 감지 후 숨김
                 self._respond(200, '{"ok":true}')
 
             elif self.path == "/set-name":
@@ -87,7 +100,7 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
                     self._respond(500, f'{{"error":"{e}"}}')
 
             elif self.path == "/save-settings":
-                int_keys   = ("scroll_speed", "zoom_delta")
+                int_keys   = ("scroll_speed", "zoom_delta", "cursor_speed")
                 float_keys = ("volume_step",)
                 for k in int_keys:
                     if k in payload:
@@ -99,6 +112,7 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
                     live_settings["auto_enter"] = bool(payload["auto_enter"])
                 try:
                     cfg = json.loads(config_path.read_text(encoding="utf-8"))
+                    cfg["gesture"]["cursor_speed"] = live_settings["cursor_speed"]
                     cfg["gesture"]["scroll_speed"] = live_settings["scroll_speed"]
                     cfg["gesture"]["volume_step"]  = live_settings["volume_step"]
                     cfg["gesture"]["zoom_delta"]   = live_settings["zoom_delta"]
@@ -120,7 +134,7 @@ def _make_handler(config_path: Path, app_state: dict, live_settings: dict):
 
 def _start_server(config_path: Path, app_state: dict, live_settings: dict, port: int = 7777):
     handler = _make_handler(config_path, app_state, live_settings)
-    server  = HTTPServer(("127.0.0.1", port), handler)
+    server  = _ThreadingHTTPServer(("127.0.0.1", port), handler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     return server
@@ -130,7 +144,8 @@ def main():
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtCore import Qt
     import PyQt5.QtWebEngineWidgets  # noqa: F401 — QApplication 전에 임포트 필수
-    QApplication.setAttribute(Qt.ApplicationAttribute(4))  # 4 = AA_ShareOpenGLContexts
+    # QWebEngineView 다중 창 WebGL 공유 — QApplication 생성 전 필수
+    QApplication.setAttribute(Qt.ApplicationAttribute(4))  # AA_ShareOpenGLContexts
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # 창 닫아도 트레이에 유지
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -139,15 +154,19 @@ def main():
     features  = config["features"]
 
     # 런타임 공유 상태 (서버 ↔ 메인 루프)
+    # running=False: 대시보드 START 버튼을 눌러야 제스처 인식 활성화
     app_state = {
-        "running":   True,
-        "user_name": config.get("user_name", "").strip(),
+        "running":    False,
+        "user_name":  config.get("user_name", "").strip(),
+        "show_gomis": False,
+        "hide_gomis": False,
     }
 
     # 감도 설정 — 대시보드 세팅 패널에서 실시간 변경 가능
     gesture_cfg = config.get("gesture", {})
     voice_cfg   = config.get("voice", {})
     live_settings = {
+        "cursor_speed": gesture_cfg.get("cursor_speed", 30),
         "scroll_speed": gesture_cfg.get("scroll_speed", 40),
         "volume_step":  gesture_cfg.get("volume_step", 3),
         "zoom_delta":   gesture_cfg.get("zoom_delta", 20),
@@ -190,6 +209,7 @@ def main():
     )
 
     # 컨트롤러에 live_settings 주입 (딕셔너리 참조 공유 → 즉시 반영)
+    cursor.set_settings(live_settings)
     scroll.set_settings(live_settings)
     volume.set_settings(live_settings)
     zoom.set_settings(live_settings)
@@ -212,7 +232,8 @@ def main():
             if not ok:
                 time.sleep(0.01)
                 continue
-            hs = tracker.process_all(fr)
+            # running=False 일 때 MediaPipe(CPU 집약) 건너뜀 — 대기 중 자원 절약
+            hs = tracker.process_all(fr) if app_state["running"] else []
             with _cap_lock:
                 _cap_state["frame"] = fr
                 _cap_state["hands"] = hs
@@ -227,6 +248,10 @@ def main():
         if frame is None:
             return None
 
+        # 대시보드 STOP 상태: 카메라 영상만 보여주고 제스처 처리 건너뜀
+        if not app_state["running"]:
+            return frame, "[대기 중 — 대시보드 START 버튼으로 시작]", None, None
+
         both_hands = len(hands) >= 2
         hand       = hands[0] if hands else None
 
@@ -240,10 +265,10 @@ def main():
         if lock_trigger == GESTURE_LOCK_TOGGLE:
             lock_state["locked"] = not lock_state["locked"]
             if lock_state["locked"]:
-                dashboard.set_state("locked")
+                gomis_dash.set_state("locked")
                 tray.notify("Gomis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
             else:
-                dashboard.set_state("idle")
+                gomis_dash.set_state("idle")
                 tray.notify("Gomis 🔓", "잠금 모드 OFF")
 
         # ── 잠금 상태이면 이하 모든 제스처 처리 건너뜀 ──────────────
@@ -287,12 +312,14 @@ def main():
                 and voice_state["status"] == "idle":
             # 인사말 TTS → 완료 후 녹음 시작 (Claude 호출 없음)
             claude_state["status"] = "greeting"
-            dashboard.set_state("speaking")
+            gomis_dash.set_state("speaking")
             tray.notify("Gomis 🤖", "Gomis 인사 중…")
 
             def _start_recording():
+                # TTS 종료 직후 오디오 드라이버 전환 딜레이 — input overflow 방지
+                time.sleep(0.4)
                 claude_state["status"] = "recording"
-                dashboard.set_state("listening")
+                gomis_dash.set_state("listening")
                 voice_typer.start(max_sec=60)
                 tray.notify("Gomis 🎤", "녹음 중… 다시 손 모으면 전송")
 
@@ -302,7 +329,7 @@ def main():
 
         elif claude_trigger == GESTURE_CLAUDE_END and claude_state["status"] == "recording":
             claude_state["status"] = "thinking"
-            dashboard.set_state("thinking")
+            gomis_dash.set_state("thinking")
             tray.notify("Gomis", "Claude 생각 중…")
 
             def _do_claude():
@@ -311,7 +338,7 @@ def main():
                     if not text:
                         tray.notify("Gomis", "인식된 텍스트 없음")
                         claude_state["status"] = "idle"
-                        dashboard.set_state("idle")
+                        gomis_dash.set_state("idle")
                         return
                     tray.notify("Gomis 🤖", f"질문: {text[:40]}")
                     result = ask_claude(text)
@@ -320,14 +347,14 @@ def main():
                         # ── 에러 타입별 처리 ────────────────────────────
                         if result.error_type == NOT_INSTALLED:
                             tray.notify("Gomis ❌", "Claude CLI 미설치 — 설치 안내를 확인하세요")
-                            dashboard.show_error_dialog(
+                            gomis_dash.show_error_dialog(
                                 "Claude CLI 설치 필요",
                                 "Claude CLI가 설치되어 있지 않습니다.",
                                 result.detail,
                             )
                         elif result.error_type == NOT_AUTHENTICATED:
                             tray.notify("Gomis ⚠️", "Claude 회원 연결이 필요합니다")
-                            dashboard.show_error_dialog(
+                            gomis_dash.show_error_dialog(
                                 "Claude 로그인 필요",
                                 "Claude CLI에 로그인되어 있지 않습니다.\n"
                                 "아래 안내에 따라 로그인 후 재시작해 주세요.",
@@ -338,33 +365,33 @@ def main():
                         else:  # UNKNOWN_ERROR
                             tray.notify("Gomis ❌", result.text[:60])
                             if result.detail:
-                                dashboard.show_error_dialog(
+                                gomis_dash.show_error_dialog(
                                     "Claude 오류",
                                     result.text,
                                     result.detail,
                                 )
                         speak_async(result.text)
                         claude_state["status"] = "idle"
-                        dashboard.set_state("idle")
+                        gomis_dash.set_state("idle")
                         return
 
                     if result.text:
                         tray.notify("Gomis 💬", f"{result.text[:60]}")
-                        dashboard.set_state("speaking")
+                        gomis_dash.set_state("speaking")
 
                         def _after_response():
                             claude_state["status"] = "idle"
-                            dashboard.set_state("idle")
+                            gomis_dash.set_state("idle")
 
                         speak_async(result.text, on_done=_after_response)
                     else:
                         tray.notify("Gomis", "Claude 응답 없음")
                         claude_state["status"] = "idle"
-                        dashboard.set_state("idle")
+                        gomis_dash.set_state("idle")
                 except Exception as e:
                     tray.notify("Gomis ❌", f"Claude 오류: {e}")
                     claude_state["status"] = "idle"
-                    dashboard.set_state("idle")
+                    gomis_dash.set_state("idle")
 
             threading.Thread(target=_do_claude, daemon=True).start()
 
@@ -399,20 +426,42 @@ def main():
             disp_gesture = f"[{len(hands)}H] {gesture}"
         return frame, disp_gesture, engine.state, handedness
 
-    from ui import PreviewWindow, TrayIcon, GomisDashboard
+    from PyQt5.QtCore import QTimer
+    from ui import PreviewWindow, TrayIcon, GomisDashboard, DashboardWindow
 
-    preview   = PreviewWindow(run_frame)
-    tray      = TrayIcon()
-    dashboard = GomisDashboard()
+    preview        = PreviewWindow(run_frame)
+    tray           = TrayIcon()
+    gomis_dash     = GomisDashboard()
+    main_dashboard = DashboardWindow()
 
     tray.quit_requested.connect(lambda: _shutdown(app, cam, tracker, windows, voice_typer))
-    tray.debug_toggled.connect(preview.set_debug)
     tray.preview_toggled.connect(lambda: preview.show() if preview.isHidden() else preview.hide())
 
+    def _open_dashboard():
+        main_dashboard.show()
+        main_dashboard.raise_()
+
+    tray.dashboard_toggled.connect(_open_dashboard)
+    tray.gomis_toggled.connect(lambda: gomis_dash.show() if gomis_dash.isHidden() else gomis_dash.raise_())
+
+    # HTTP 서버(별도 스레드) → Qt 메인 스레드: show_gomis / hide_gomis 플래그 폴링
+    def _poll_app_state():
+        if app_state.get("show_gomis"):
+            app_state["show_gomis"] = False
+            gomis_dash.show()
+            gomis_dash.raise_()
+        if app_state.get("hide_gomis"):
+            app_state["hide_gomis"] = False
+            gomis_dash.hide()
+
+    _state_timer = QTimer()
+    _state_timer.timeout.connect(_poll_app_state)
+    _state_timer.start(200)  # 200ms 간격 폴링
+
+    # 앱 시작: 대시보드만 오픈, Gomis AI 창은 START 버튼 시 표시
+    main_dashboard.show()
     tray.show()
-    preview.show()
-    dashboard.show()
-    tray.notify("Gomis 시작", "손 제스처로 컴퓨터를 제어합니다.")
+    tray.notify("Gomis 시작", "대시보드 START 버튼으로 모션 인식을 시작하세요.")
 
     sys.exit(app.exec_())
 

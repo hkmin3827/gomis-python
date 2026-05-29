@@ -85,6 +85,7 @@ class VoiceTyper:
             samplerate=self.SAMPLE_RATE,
             channels=1,
             dtype="float32",
+            blocksize=4096,   # 버퍼 크게 → TTS 직후 input overflow 방지
             callback=self._audio_callback,
         )
         self._stream.start()

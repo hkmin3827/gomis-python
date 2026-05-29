@@ -1023,6 +1023,18 @@
         <div class="sp-section-title">감도 조절</div>
 
         <div class="sp-row">
+          <span class="sp-icon">🖱</span>
+          <span class="sp-label">커서 감도</span>
+          <div class="sp-slider-wrap">
+            <button class="sp-step" data-slider="slCursor" data-val="valCursor" data-dir="-1">−</button>
+            <input type="range" class="sp-slider" id="slCursor" min="1" max="100" step="1" value="70" />
+            <button class="sp-step" data-slider="slCursor" data-val="valCursor" data-dir="1">+</button>
+            <span class="sp-val" id="valCursor">70<span style="font-size:9px;font-weight:400">%</span></span>
+            <button class="sp-reset" data-slider="slCursor" data-val="valCursor" data-default="70" title="초기화">↺</button>
+          </div>
+        </div>
+
+        <div class="sp-row">
           <span class="sp-icon">↕</span>
           <span class="sp-label">스크롤 속도</span>
           <div class="sp-slider-wrap">
@@ -2091,12 +2103,10 @@
         setTimeout(() => {
           obModal.style.display = "none";
         }, 560);
-        // Python settings.json 동기화 (앱 실행 중일 때만 유효, 실패 무시)
-        fetch("http://localhost:7777/set-name", {
+        fetchWithTimeout("http://localhost:7777/set-name", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: userName }),
-          signal: AbortSignal.timeout(2000),
         }).catch(() => {});
       }
       obSubmit.addEventListener("click", submitName);
@@ -2113,6 +2123,7 @@
       const spNameSaveBtn = document.getElementById("spNameSave");
 
       const SLIDER_DEFS = [
+        { sliderId: "slCursor", valId: "valCursor", key: "cursor_speed", unit: "%", default: 70 },
         { sliderId: "slScroll", valId: "valScroll", key: "scroll_speed", unit: "",  default: 40 },
         { sliderId: "slVolume", valId: "valVolume", key: "volume_step",  unit: "%", default: 3  },
         { sliderId: "slZoom",   valId: "valZoom",   key: "zoom_delta",   unit: "",  default: 20 },
@@ -2141,20 +2152,27 @@
         }
       }
 
+      // AbortController 기반 timeout fetch (AbortSignal.timeout 미지원 환경 대응)
+      function fetchWithTimeout(url, opts = {}, ms = 2500) {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(() => ctrl.abort(), ms);
+        return fetch(url, { ...opts, signal: ctrl.signal })
+          .finally(() => clearTimeout(tid));
+      }
+
       async function openSettings() {
         spNameInp.value = userName;
-        // 앱에서 현재 값 불러오기
         try {
-          const res = await fetch("http://localhost:7777/get-settings");
+          const res = await fetchWithTimeout("http://localhost:7777/get-settings", {}, 2500);
           if (res.ok) {
             const s = await res.json();
-            setSliderVal(SLIDER_DEFS[0], s.scroll_speed ?? 40);
-            setSliderVal(SLIDER_DEFS[1], s.volume_step  ?? 3);
-            setSliderVal(SLIDER_DEFS[2], s.zoom_delta   ?? 20);
+            setSliderVal(SLIDER_DEFS[0], s.cursor_speed ?? 30);
+            setSliderVal(SLIDER_DEFS[1], s.scroll_speed ?? 40);
+            setSliderVal(SLIDER_DEFS[2], s.volume_step  ?? 3);
+            setSliderVal(SLIDER_DEFS[3], s.zoom_delta   ?? 20);
             document.getElementById("toggleAutoEnter").checked = s.auto_enter ?? true;
           }
         } catch (_) {
-          // 앱 미실행 시 settings.json 기본값 유지
           SLIDER_DEFS.forEach(d => setSliderVal(d, d.default));
           document.getElementById("toggleAutoEnter").checked = true;
         }
@@ -2179,7 +2197,7 @@
         });
         payload.auto_enter = document.getElementById("toggleAutoEnter").checked;
         try {
-          await fetch("http://localhost:7777/save-settings", {
+          await fetchWithTimeout("http://localhost:7777/save-settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -2235,7 +2253,7 @@
         localStorage.setItem("gomis_user", userName);
         applyName(v);
         try {
-          await fetch("http://localhost:7777/set-name", {
+          await fetchWithTimeout("http://localhost:7777/set-name", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: v }),
@@ -2415,14 +2433,17 @@
         }
       }
 
-      function renderCanvas() {
+      const CANVAS_FRAME_MS = 1000 / 30;  // scatter canvas 30fps 캡
+      let _canvasLastFrame = 0;
+      function renderCanvas(now) {
+        requestAnimationFrame(renderCanvas);
+        if (now - _canvasLastFrame < CANVAS_FRAME_MS) return;
+        _canvasLastFrame = now;
         ctx.clearRect(0, 0, W, H);
-        const now = performance.now();
         ITEMS.forEach((p) => {
           p.tick(now);
           p.draw();
         });
-        requestAnimationFrame(renderCanvas);
       }
 
       const heroEl = document.getElementById("hero");
@@ -2451,7 +2472,7 @@
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       buildGrid();
-      renderCanvas();
+      requestAnimationFrame(renderCanvas);
 
       // ─── START / STOP ─────────────────────────────────────
       let running = false;
@@ -2462,19 +2483,13 @@
 
       async function doStart() {
         try {
-          await fetch("http://localhost:7777/start", {
-            method: "POST",
-            signal: AbortSignal.timeout(2500),
-          });
+          await fetchWithTimeout("http://localhost:7777/start", { method: "POST" });
         } catch (_) {}
         setRun(true);
       }
       async function doStop() {
         try {
-          await fetch("http://localhost:7777/stop", {
-            method: "POST",
-            signal: AbortSignal.timeout(2500),
-          });
+          await fetchWithTimeout("http://localhost:7777/stop", { method: "POST" });
         } catch (_) {}
         setRun(false);
       }

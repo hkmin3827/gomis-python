@@ -7,15 +7,14 @@ ICON_PATH = Path(__file__).parent.parent / "config" / "icon.png"
 
 
 class TrayIcon(QObject):
-    quit_requested   = pyqtSignal()
-    debug_toggled    = pyqtSignal(bool)
-    preview_toggled  = pyqtSignal()
+    quit_requested      = pyqtSignal()
+    preview_toggled     = pyqtSignal()
+    dashboard_toggled   = pyqtSignal()   # dashboard.html 창
+    gomis_toggled       = pyqtSignal()   # gomis.html (Gomis AI) 창
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._debug_on = False
 
-        # 아이콘 (없으면 기본 아이콘 사용)
         icon = QIcon(str(ICON_PATH)) if ICON_PATH.exists() else QApplication.style().standardIcon(65)
 
         self._tray = QSystemTrayIcon(icon, parent)
@@ -23,13 +22,17 @@ class TrayIcon(QObject):
 
         menu = QMenu()
 
-        self._act_preview = QAction("미리보기 창 열기", menu)
-        self._act_preview.triggered.connect(self.preview_toggled.emit)
-        menu.addAction(self._act_preview)
+        act_dashboard = QAction("대시보드 열기", menu)
+        act_dashboard.triggered.connect(self.dashboard_toggled.emit)
+        menu.addAction(act_dashboard)
 
-        self._act_debug = QAction("디버그 모드: OFF", menu)
-        self._act_debug.triggered.connect(self._toggle_debug)
-        menu.addAction(self._act_debug)
+        act_gomis = QAction("Gomis AI 창 열기", menu)
+        act_gomis.triggered.connect(self.gomis_toggled.emit)
+        menu.addAction(act_gomis)
+
+        act_preview = QAction("모션인식 웹캠 창 열기", menu)
+        act_preview.triggered.connect(self.preview_toggled.emit)
+        menu.addAction(act_preview)
 
         menu.addSeparator()
 
@@ -43,14 +46,12 @@ class TrayIcon(QObject):
     def show(self):
         self._tray.show()
 
-    def _toggle_debug(self):
-        self._debug_on = not self._debug_on
-        self._act_debug.setText(f"디버그 모드: {'ON' if self._debug_on else 'OFF'}")
-        self.debug_toggled.emit(self._debug_on)
+    def hide(self):
+        self._tray.hide()
 
     def _on_activated(self, reason):
         if reason == QSystemTrayIcon.DoubleClick:
-            self.preview_toggled.emit()
+            self.dashboard_toggled.emit()
 
     def notify(self, title: str, msg: str):
         self._tray.showMessage(title, msg, QSystemTrayIcon.Information, 2000)

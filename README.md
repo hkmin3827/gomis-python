@@ -89,6 +89,7 @@
 - ~~스크린샷 캡처~~ (추가 개발 계획 없음)
 - ~~밝기 조절~~ (추가 개발 계획 없음)
 - ~~제스처 커스터마이징 UI~~ (추가 개발 계획 없음)
+- **드래그** ㅡ (기능 추가 가능성 ☑️)
 
 ---
 
@@ -203,6 +204,26 @@ gomis-prj/
 ---
 
 ## 변경 이력
+
+### 2026-05-29 — UI 아키텍처 재설계 + 성능 최적화
+
+| 항목 | 내용 |
+|------|------|
+| **대시보드 기본 시작** | 앱 실행 시 `dashboard.html` 창 자동 오픈. START 버튼으로 제스처 인식 활성화, STOP으로 비활성화 |
+| **Gomis AI 창 분리** | START 클릭 시 Gomis 3D 구체 창 표시, STOP 시 숨김. 트레이에서 개별 오픈 가능 |
+| **트레이 메뉴 재구성** | "대시보드 열기" / "Gomis AI 창 열기" / "모션인식 웹캠 창 열기" 분리. 디버그 모드 항목 제거 |
+| **커서 감도 슬라이더** | Settings 패널에 1-100% 슬라이더 추가. 감도 변경 즉시 반영, 재시작 시 유지. 빠를수록 마진 증가(active zone 축소) → 커서 속도 ↑ |
+| **MediaPipe 조건부 실행** | `running=False`(STOP/대기) 상태에서 MediaPipe 호출 완전 생략 → 대기 중 CPU ~50% 절감 |
+| **Canvas 30fps 캡** | Three.js(gomis.html) + scatter canvas(dashboard.html) 모두 30fps 상한 적용 |
+| **PreviewWindow 최적화** | 창 숨김 상태에서 cv2 변환·QPixmap 렌더링 스킵 |
+| **HTTP 서버 멀티스레드** | `ThreadingMixIn` 적용 — 요청 큐잉 없이 병렬 처리 |
+| **fetch timeout 수정** | `AbortSignal.timeout()` (구버전 Chromium 미지원) → `AbortController + setTimeout` 패턴으로 교체 |
+| **CORS 보안 강화** | `Access-Control-Allow-Origin: *` → 요청 Origin 에코 (`file://` 계열만 허용) |
+| **Claude 녹음 안정화** | TTS 완료 후 0.4s 딜레이 + 오디오 버퍼 blocksize=4096 → input overflow 방지 |
+| **WebGL 컨텍스트 수정** | `AA_ShareOpenGLContexts` 복원 — QWebEngineView 다중 창 Three.js 렌더링 정상화 |
+| **Three.js 텍스처 경고 해소** | `generateMipmaps=false`, `LinearFilter` 설정 — RENDER WARNING 제거 |
+
+---
 
 ### 2026-05-28 — Claude CLI 에러 응답 분기 처리 (릴리즈 사전 수정)
 
