@@ -16,7 +16,7 @@ os.environ.setdefault("GLOG_minloglevel", "3")
 if getattr(sys, 'frozen', False):
     _torch_lib = os.path.join(getattr(sys, '_MEIPASS', ''), 'torch', 'lib')
     if os.path.isdir(_torch_lib):
-        os.add_dll_directory(_torch_lib)
+        _torch_dll_dir = os.add_dll_directory(_torch_lib)  # noqa: F841 — GC되면 등록 해제되므로 반환값 유지 필수
         os.environ['PATH'] = _torch_lib + os.pathsep + os.environ.get('PATH', '')
 try:
     import torch  # noqa: F401  # type: ignore[import]
@@ -307,7 +307,7 @@ def main():
 
             def _do_claude():
                 try:
-                    text = voice_typer.stop_and_transcribe(auto_enter=False)
+                    text = voice_typer.stop_and_transcribe(auto_enter=False, do_type=False)
                     if not text:
                         tray.notify("Gomis", "인식된 텍스트 없음")
                         claude_state["status"] = "idle"
