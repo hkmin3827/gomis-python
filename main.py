@@ -10,8 +10,14 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 # MediaPipe 내부 Google 원격 측정 에러 로그 억제 (1회)
 os.environ.setdefault("GLOG_minloglevel", "3")
 
-# torch DLL을 Qt보다 먼저 초기화해야 WinError 1114 방지됨
-# Qt가 DLL 검색 경로를 변경하기 전에 c10.dll 등을 로드
+# PyInstaller 빌드 시 torch/lib 디렉토리를 DLL 검색 경로에 먼저 등록해야
+# c10.dll WinError 1114 (DLL 초기화 실패) 방지됨.
+# Qt가 DLL 검색 경로를 변경하기 전에 반드시 실행.
+if getattr(sys, 'frozen', False):
+    _torch_lib = os.path.join(getattr(sys, '_MEIPASS', ''), 'torch', 'lib')
+    if os.path.isdir(_torch_lib):
+        os.add_dll_directory(_torch_lib)
+        os.environ['PATH'] = _torch_lib + os.pathsep + os.environ.get('PATH', '')
 try:
     import torch  # noqa: F401  # type: ignore[import]
 except Exception:
