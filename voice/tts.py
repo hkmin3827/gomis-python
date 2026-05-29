@@ -10,7 +10,7 @@ import time
 
 log = logging.getLogger("voice")
 
-_VOICE = "ko-KR-SunHiNeural"   # edge-tts 한국어 고품질 음성
+_VOICE = "ko-KR-HyunsuMultilingualNeural"   # edge-tts 한국어 고품질 음성
 
 
 def speak(text: str) -> None:

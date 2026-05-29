@@ -60,8 +60,9 @@ class VoiceTyper:
 
     # ── 공개 API ──
     def start(self, max_sec: int = MAX_RECORD_SEC, auto_enter: bool = True,
-              on_auto_stop: "callable | None" = None) -> None:
-        """녹음 시작. max_sec 초 후 자동 종료. on_auto_stop 콜백으로 상태 업데이트 가능."""
+              on_auto_stop=None,
+              on_started=None) -> None:
+        """녹음 시작. max_sec 초 후 자동 종료. on_started는 스트림 열린 직후, on_auto_stop은 자동 종료 시 호출."""
         log.info("녹음 시작 요청")
         # 녹음 시작 시점의 포커스 창 저장 — Whisper 완료 후 해당 창에 텍스트 입력
         try:
@@ -90,6 +91,8 @@ class VoiceTyper:
         )
         self._stream.start()
         log.info("녹음 스트림 시작됨")
+        if on_started:
+            on_started()
 
         # 자동 종료 타이머
         def _timeout():
@@ -142,11 +145,11 @@ class VoiceTyper:
         elapsed = time.time() - t0
         log.info(f"Whisper 추론 완료: {elapsed:.2f}초 → '{text}'")
 
-        if text and do_type:
+        if not text:
+            log.warning("인식 결과 없음 (빈 문자열)")
+        elif do_type:
             self._type_text(text, auto_enter=auto_enter, target_hwnd=self._target_hwnd)
             log.info(f"타이핑 완료 (auto_enter={auto_enter})")
-        else:
-            log.warning("인식 결과 없음 (빈 문자열)")
 
         return text
 

@@ -35,6 +35,9 @@
         scroll-behavior: smooth;
       }
 
+      html {
+        font-size: 14px; /* 기준 크기 — 전체 조정 시 여기만 변경 */
+      }
       body {
         background: var(--bg);
         color: var(--text);
@@ -48,12 +51,11 @@
         position: fixed;
         width: 7px;
         height: 7px;
-        background: var(--text);
+        background: #ffffff;
         border-radius: 50%;
         pointer-events: none;
         z-index: 9999;
         transform: translate(-50%, -50%);
-        mix-blend-mode: difference;
       }
       #cring {
         position: fixed;
@@ -78,7 +80,12 @@
       /* ─── ONBOARDING ─────────────────────────────────── */
       #onboarding {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
         background: rgba(242, 242, 240, 0.97);
         display: flex;
         align-items: center;
@@ -86,6 +93,7 @@
         z-index: 2000;
         backdrop-filter: blur(20px);
         transition: opacity 0.55s;
+        box-sizing: border-box;
       }
       .ob-box {
         text-align: center;
@@ -185,13 +193,15 @@
       .edit-btn {
         background: none;
         border: none;
-        color: rgba(255, 255, 255, 0.45);
+        color: rgba(255, 255, 255, 0.692);
         cursor: none;
-        font-size: 18px;
+        font-size: 22px;
         line-height: 1;
         font-family: "Pretendard", sans-serif;
         padding: 4px 6px;
-        transition: color 0.2s, transform 0.35s;
+        transition:
+          color 0.2s,
+          transform 0.35s;
       }
       .edit-btn:hover {
         color: #fff;
@@ -201,7 +211,10 @@
       /* ─── RENAME MODAL ───────────────────────────────── */
       #rename-modal {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: rgba(8, 8, 8, 0.5);
         display: none;
         align-items: center;
@@ -273,7 +286,10 @@
       /* ─── SETTINGS PANEL (modal) ─────────────────────── */
       #settings-panel {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: rgba(8, 8, 8, 0.55);
         display: none;
         align-items: center;
@@ -297,7 +313,7 @@
         overflow-y: auto;
         transform: translateY(12px);
         transition: transform 0.25s;
-        border: 1px solid rgba(0,0,0,0.08);
+        border: 1px solid rgba(0, 0, 0, 0.08);
       }
       #settings-panel.sp-open .sp-box {
         transform: translateY(0);
@@ -325,7 +341,9 @@
         font-family: "Pretendard", sans-serif;
         line-height: 1;
       }
-      .sp-close:hover { color: var(--text); }
+      .sp-close:hover {
+        color: var(--text);
+      }
 
       .sp-section-title {
         font-size: 9px;
@@ -385,7 +403,7 @@
         border-radius: 50%;
         background: #fff;
         border: 2px solid #c8003a;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
         cursor: none;
       }
       .sp-val {
@@ -412,7 +430,10 @@
         transition: all 0.18s;
         font-family: "Pretendard", sans-serif;
       }
-      .sp-reset:hover { border-color: var(--text); color: var(--text); }
+      .sp-reset:hover {
+        border-color: var(--text);
+        color: var(--text);
+      }
 
       .sp-step {
         background: none;
@@ -433,19 +454,25 @@
         font-family: "Pretendard", sans-serif;
         user-select: none;
       }
-      .sp-step:hover { border-color: var(--text); color: var(--text); background: rgba(0,0,0,0.04); }
-      .sp-step:active { background: rgba(0,0,0,0.08); }
+      .sp-step:hover {
+        border-color: var(--text);
+        color: var(--text);
+        background: rgba(0, 0, 0, 0.04);
+      }
+      .sp-step:active {
+        background: rgba(0, 0, 0, 0.08);
+      }
 
       /* 이름 입력 행 */
       .sp-name-row {
         display: flex;
-        align-items: center;
+        align-items: stretch;
         gap: 8px;
         margin-bottom: 8px;
       }
       .sp-input {
         flex: 1;
-        border: 1px solid rgba(0,0,0,0.15);
+        border: 1px solid rgba(0, 0, 0, 0.15);
         background: transparent;
         font-family: "Pretendard", sans-serif;
         font-size: 13px;
@@ -454,7 +481,9 @@
         color: var(--text);
         transition: border-color 0.2s;
       }
-      .sp-input:focus { border-color: var(--text); }
+      .sp-input:focus {
+        border-color: var(--text);
+      }
       .sp-input-btn {
         padding: 9px 16px;
         font-size: 10px;
@@ -467,7 +496,9 @@
         font-weight: 600;
         transition: opacity 0.18s;
       }
-      .sp-input-btn:hover { opacity: 0.75; }
+      .sp-input-btn:hover {
+        opacity: 0.75;
+      }
 
       /* 저장 버튼 */
       .sp-save-wrap {
@@ -487,8 +518,12 @@
         font-family: "Pretendard", sans-serif;
         transition: opacity 0.18s;
       }
-      .sp-save-btn:hover { opacity: 0.75; }
-      .sp-save-btn:disabled { opacity: 0.35; }
+      .sp-save-btn:hover {
+        opacity: 0.75;
+      }
+      .sp-save-btn:disabled {
+        opacity: 0.35;
+      }
 
       /* 토글 스위치 */
       .sp-toggle-row {
@@ -498,7 +533,7 @@
         margin-top: 18px;
         padding: 12px 14px;
         border-radius: 10px;
-        background: rgba(0,0,0,0.035);
+        background: rgba(0, 0, 0, 0.035);
       }
       .sp-toggle-label {
         flex: 1;
@@ -508,7 +543,7 @@
       }
       .sp-toggle-desc {
         font-size: 10px;
-        color: rgba(10,10,10,0.45);
+        color: rgba(10, 10, 10, 0.45);
         margin-top: 2px;
       }
       .sp-toggle {
@@ -517,11 +552,18 @@
         height: 22px;
         flex-shrink: 0;
       }
-      .sp-toggle input { opacity: 0; width: 0; height: 0; }
+      .sp-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
       .sp-toggle-track {
         position: absolute;
-        inset: 0;
-        background: rgba(0,0,0,0.15);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.15);
         border-radius: 11px;
         cursor: pointer;
         transition: background 0.2s;
@@ -529,8 +571,10 @@
       .sp-toggle-track::after {
         content: "";
         position: absolute;
-        top: 3px; left: 3px;
-        width: 16px; height: 16px;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
         background: #fff;
         border-radius: 50%;
         transition: transform 0.2s;
@@ -555,7 +599,10 @@
       }
       #scatter-canvas {
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 0;
       }
       .hero-content {
@@ -918,7 +965,10 @@
 
       .gc-inner {
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -948,7 +998,10 @@
       /* Hover overlay */
       .gc-ov {
         position: absolute;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: rgba(0, 0, 0, 0.9);
         display: flex;
         flex-direction: column;
@@ -1015,7 +1068,14 @@
         <!-- 사용자 이름 -->
         <div class="sp-section-title">사용자 이름</div>
         <div class="sp-name-row">
-          <input type="text" class="sp-input" id="spNameInput" placeholder="이름" maxlength="20" autocomplete="off" />
+          <input
+            type="text"
+            class="sp-input"
+            id="spNameInput"
+            placeholder="이름"
+            maxlength="20"
+            autocomplete="off"
+          />
           <button class="sp-input-btn" id="spNameSave">저장</button>
         </div>
 
@@ -1026,11 +1086,43 @@
           <span class="sp-icon">🖱</span>
           <span class="sp-label">커서 감도</span>
           <div class="sp-slider-wrap">
-            <button class="sp-step" data-slider="slCursor" data-val="valCursor" data-dir="-1">−</button>
-            <input type="range" class="sp-slider" id="slCursor" min="1" max="100" step="1" value="70" />
-            <button class="sp-step" data-slider="slCursor" data-val="valCursor" data-dir="1">+</button>
-            <span class="sp-val" id="valCursor">70<span style="font-size:9px;font-weight:400">%</span></span>
-            <button class="sp-reset" data-slider="slCursor" data-val="valCursor" data-default="70" title="초기화">↺</button>
+            <button
+              class="sp-step"
+              data-slider="slCursor"
+              data-val="valCursor"
+              data-dir="-1"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              class="sp-slider"
+              id="slCursor"
+              min="1"
+              max="100"
+              step="1"
+              value="70"
+            />
+            <button
+              class="sp-step"
+              data-slider="slCursor"
+              data-val="valCursor"
+              data-dir="1"
+            >
+              +
+            </button>
+            <span class="sp-val" id="valCursor"
+              >70<span style="font-size: 9px; font-weight: 400">%</span></span
+            >
+            <button
+              class="sp-reset"
+              data-slider="slCursor"
+              data-val="valCursor"
+              data-default="70"
+              title="초기화"
+            >
+              ↺
+            </button>
           </div>
         </div>
 
@@ -1038,11 +1130,41 @@
           <span class="sp-icon">↕</span>
           <span class="sp-label">스크롤 속도</span>
           <div class="sp-slider-wrap">
-            <button class="sp-step" data-slider="slScroll" data-val="valScroll" data-dir="-1">−</button>
-            <input type="range" class="sp-slider" id="slScroll" min="5" max="150" step="1" value="40" />
-            <button class="sp-step" data-slider="slScroll" data-val="valScroll" data-dir="1">+</button>
+            <button
+              class="sp-step"
+              data-slider="slScroll"
+              data-val="valScroll"
+              data-dir="-1"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              class="sp-slider"
+              id="slScroll"
+              min="5"
+              max="150"
+              step="1"
+              value="40"
+            />
+            <button
+              class="sp-step"
+              data-slider="slScroll"
+              data-val="valScroll"
+              data-dir="1"
+            >
+              +
+            </button>
             <span class="sp-val" id="valScroll">40</span>
-            <button class="sp-reset" data-slider="slScroll" data-val="valScroll" data-default="40" title="초기화">↺</button>
+            <button
+              class="sp-reset"
+              data-slider="slScroll"
+              data-val="valScroll"
+              data-default="40"
+              title="초기화"
+            >
+              ↺
+            </button>
           </div>
         </div>
 
@@ -1050,11 +1172,43 @@
           <span class="sp-icon">🔊</span>
           <span class="sp-label">볼륨 감도</span>
           <div class="sp-slider-wrap">
-            <button class="sp-step" data-slider="slVolume" data-val="valVolume" data-dir="-1">−</button>
-            <input type="range" class="sp-slider" id="slVolume" min="1" max="10" step="1" value="3" />
-            <button class="sp-step" data-slider="slVolume" data-val="valVolume" data-dir="1">+</button>
-            <span class="sp-val" id="valVolume">3<span style="font-size:9px;font-weight:400">%</span></span>
-            <button class="sp-reset" data-slider="slVolume" data-val="valVolume" data-default="3" title="초기화">↺</button>
+            <button
+              class="sp-step"
+              data-slider="slVolume"
+              data-val="valVolume"
+              data-dir="-1"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              class="sp-slider"
+              id="slVolume"
+              min="1"
+              max="10"
+              step="1"
+              value="3"
+            />
+            <button
+              class="sp-step"
+              data-slider="slVolume"
+              data-val="valVolume"
+              data-dir="1"
+            >
+              +
+            </button>
+            <span class="sp-val" id="valVolume"
+              >3<span style="font-size: 9px; font-weight: 400">%</span></span
+            >
+            <button
+              class="sp-reset"
+              data-slider="slVolume"
+              data-val="valVolume"
+              data-default="3"
+              title="초기화"
+            >
+              ↺
+            </button>
           </div>
         </div>
 
@@ -1062,16 +1216,46 @@
           <span class="sp-icon">🔍</span>
           <span class="sp-label">줌 감도</span>
           <div class="sp-slider-wrap">
-            <button class="sp-step" data-slider="slZoom" data-val="valZoom" data-dir="-1">−</button>
-            <input type="range" class="sp-slider" id="slZoom" min="5" max="80" step="5" value="20" />
-            <button class="sp-step" data-slider="slZoom" data-val="valZoom" data-dir="1">+</button>
+            <button
+              class="sp-step"
+              data-slider="slZoom"
+              data-val="valZoom"
+              data-dir="-1"
+            >
+              −
+            </button>
+            <input
+              type="range"
+              class="sp-slider"
+              id="slZoom"
+              min="5"
+              max="80"
+              step="5"
+              value="20"
+            />
+            <button
+              class="sp-step"
+              data-slider="slZoom"
+              data-val="valZoom"
+              data-dir="1"
+            >
+              +
+            </button>
             <span class="sp-val" id="valZoom">20</span>
-            <button class="sp-reset" data-slider="slZoom" data-val="valZoom" data-default="20" title="초기화">↺</button>
+            <button
+              class="sp-reset"
+              data-slider="slZoom"
+              data-val="valZoom"
+              data-default="20"
+              title="초기화"
+            >
+              ↺
+            </button>
           </div>
         </div>
 
         <!-- 음성 타이핑 옵션 -->
-        <div class="sp-section-title" style="margin-top:22px;">음성 타이핑</div>
+        <div class="sp-section-title" style="margin-top: 22px">음성 타이핑</div>
 
         <div class="sp-toggle-row">
           <div>
@@ -1149,8 +1333,8 @@
         <div class="hero-title">GOMIS</div>
         <div class="hero-sub">손 제스처 · 음성 인식 · AI 연동</div>
         <div class="hero-greeting">
-          네, <span class="gname" id="heroName">Guest</span>님 무엇을
-          도와드릴까요?
+          어서오세요,<span class="gname" id="heroName">Guest</span>님. GOMIS를
+          시작하시겠어요?
         </div>
         <div class="btn-group">
           <button class="btn-hero btn-start" id="btnStart">
@@ -1986,10 +2170,16 @@
               </li>
               <li>에이전트 실행 중에는 모션 인식이 일시 중지됩니다</li>
               <li>
-                ⚠ <strong>세션 저장 주의</strong> — Claude Code CLI 특성상
-                음성 질문 1회마다 별도 대화 세션이
-                <code style="font-size:11px;background:rgba(0,0,0,0.07);padding:1px 4px">~/.claude/projects/</code>에
-                저장됩니다. 민감한 내용은 음성으로 묻지 않도록 주의하세요
+                ⚠ <strong>세션 저장 주의</strong> — Claude Code CLI 특성상 음성
+                질문 1회마다 별도 대화 세션이
+                <code
+                  style="
+                    font-size: 11px;
+                    background: rgba(0, 0, 0, 0.07);
+                    padding: 1px 4px;
+                  "
+                  >~/.claude/projects/</code
+                >에 저장됩니다. 민감한 내용은 음성으로 묻지 않도록 주의하세요
               </li>
             </ul>
           </div>
@@ -2011,7 +2201,10 @@
             포커스된 입력창에 음성으로 바로 입력할 수 있습니다.
             <ul class="rv-list">
               <li>양손 박수 제스처로 음성 인식을 시작합니다</li>
-              <li>Whisper <strong>small</strong> 모델이 로컬에서 음성을 텍스트로 변환합니다 — 외부 서버 전송 없음</li>
+              <li>
+                Whisper <strong>small</strong> 모델이 로컬에서 음성을 텍스트로
+                변환합니다 — 외부 서버 전송 없음
+              </li>
               <li>
                 커서가 깜빡이는 <strong>포커스된 텍스트 입력창</strong>에 변환된
                 텍스트가 자동 입력됩니다
@@ -2026,8 +2219,9 @@
               </li>
               <li>다시 양손 박수를 치면 인식이 종료됩니다</li>
               <li>
-                <strong>최대 녹음 시간 5분(300초)</strong> — 초과 시 자동 종료 및 입력.
-                5분 기준 약 <strong>3,000~4,500자</strong> 분량 처리 가능
+                <strong>최대 녹음 시간 5분(300초)</strong> — 초과 시 자동 종료
+                및 입력. 5분 기준 약 <strong>3,000~4,500자</strong> 분량 처리
+                가능
               </li>
             </ul>
           </div>
@@ -2055,8 +2249,8 @@
         cy = e.clientY;
       });
       (function loopCursor() {
-        rx += (cx - rx) * 0.13;
-        ry += (cy - ry) * 0.13;
+        rx += (cx - rx) * 0.25;
+        ry += (cy - ry) * 0.25;
         cdot.style.left = cx + "px";
         cdot.style.top = cy + "px";
         cring.style.left = rx + "px";
@@ -2116,22 +2310,48 @@
       // rename-modal HTML은 레거시로 유지 (display:none 상태)
 
       // ─── SETTINGS PANEL ──────────────────────────────────────
-      const spPanel   = document.getElementById("settings-panel");
-      const spClose   = document.getElementById("spClose");
-      const spSave    = document.getElementById("spSave");
+      const spPanel = document.getElementById("settings-panel");
+      const spClose = document.getElementById("spClose");
+      const spSave = document.getElementById("spSave");
       const spNameInp = document.getElementById("spNameInput");
       const spNameSaveBtn = document.getElementById("spNameSave");
 
       const SLIDER_DEFS = [
-        { sliderId: "slCursor", valId: "valCursor", key: "cursor_speed", unit: "%", default: 70 },
-        { sliderId: "slScroll", valId: "valScroll", key: "scroll_speed", unit: "",  default: 40 },
-        { sliderId: "slVolume", valId: "valVolume", key: "volume_step",  unit: "%", default: 3  },
-        { sliderId: "slZoom",   valId: "valZoom",   key: "zoom_delta",   unit: "",  default: 20 },
+        {
+          sliderId: "slCursor",
+          valId: "valCursor",
+          key: "cursor_speed",
+          unit: "%",
+          default: 70,
+        },
+        {
+          sliderId: "slScroll",
+          valId: "valScroll",
+          key: "scroll_speed",
+          unit: "",
+          default: 40,
+        },
+        {
+          sliderId: "slVolume",
+          valId: "valVolume",
+          key: "volume_step",
+          unit: "%",
+          default: 3,
+        },
+        {
+          sliderId: "slZoom",
+          valId: "valZoom",
+          key: "zoom_delta",
+          unit: "",
+          default: 20,
+        },
       ];
 
       function _pct(slider) {
-        const mn = +slider.min, mx = +slider.max, v = +slider.value;
-        return ((v - mn) / (mx - mn) * 100).toFixed(1) + "%";
+        const mn = +slider.min,
+          mx = +slider.max,
+          v = +slider.value;
+        return (((v - mn) / (mx - mn)) * 100).toFixed(1) + "%";
       }
 
       function updateSliderTrack(slider) {
@@ -2140,7 +2360,7 @@
 
       function setSliderVal(def, value) {
         const slider = document.getElementById(def.sliderId);
-        const valEl  = document.getElementById(def.valId);
+        const valEl = document.getElementById(def.valId);
         slider.value = value;
         updateSliderTrack(slider);
         valEl.textContent = Number(value);
@@ -2155,25 +2375,31 @@
       // AbortController 기반 timeout fetch (AbortSignal.timeout 미지원 환경 대응)
       function fetchWithTimeout(url, opts = {}, ms = 2500) {
         const ctrl = new AbortController();
-        const tid  = setTimeout(() => ctrl.abort(), ms);
-        return fetch(url, { ...opts, signal: ctrl.signal })
-          .finally(() => clearTimeout(tid));
+        const tid = setTimeout(() => ctrl.abort(), ms);
+        return fetch(url, { ...opts, signal: ctrl.signal }).finally(() =>
+          clearTimeout(tid),
+        );
       }
 
       async function openSettings() {
         spNameInp.value = userName;
         try {
-          const res = await fetchWithTimeout("http://localhost:7777/get-settings", {}, 2500);
+          const res = await fetchWithTimeout(
+            "http://localhost:7777/get-settings",
+            {},
+            2500,
+          );
           if (res.ok) {
             const s = await res.json();
             setSliderVal(SLIDER_DEFS[0], s.cursor_speed ?? 30);
             setSliderVal(SLIDER_DEFS[1], s.scroll_speed ?? 40);
-            setSliderVal(SLIDER_DEFS[2], s.volume_step  ?? 3);
-            setSliderVal(SLIDER_DEFS[3], s.zoom_delta   ?? 20);
-            document.getElementById("toggleAutoEnter").checked = s.auto_enter ?? true;
+            setSliderVal(SLIDER_DEFS[2], s.volume_step ?? 3);
+            setSliderVal(SLIDER_DEFS[3], s.zoom_delta ?? 20);
+            document.getElementById("toggleAutoEnter").checked =
+              s.auto_enter ?? true;
           }
         } catch (_) {
-          SLIDER_DEFS.forEach(d => setSliderVal(d, d.default));
+          SLIDER_DEFS.forEach((d) => setSliderVal(d, d.default));
           document.getElementById("toggleAutoEnter").checked = true;
         }
         spPanel.style.display = "flex";
@@ -2185,14 +2411,16 @@
 
       function closeSettings() {
         spPanel.classList.remove("sp-open");
-        setTimeout(() => { spPanel.style.display = "none"; }, 290);
+        setTimeout(() => {
+          spPanel.style.display = "none";
+        }, 290);
       }
 
       async function saveSettings() {
         spSave.disabled = true;
         spSave.textContent = "저장 중…";
         const payload = {};
-        SLIDER_DEFS.forEach(d => {
+        SLIDER_DEFS.forEach((d) => {
           payload[d.key] = +document.getElementById(d.sliderId).value;
         });
         payload.auto_enter = document.getElementById("toggleAutoEnter").checked;
@@ -2202,16 +2430,18 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
-        } catch (_) { /* 앱 미실행 시 무시 */ }
+        } catch (_) {
+          /* 앱 미실행 시 무시 */
+        }
         spSave.disabled = false;
         spSave.textContent = "SAVE SETTINGS";
         closeSettings();
       }
 
       // 슬라이더 이벤트
-      SLIDER_DEFS.forEach(def => {
+      SLIDER_DEFS.forEach((def) => {
         const slider = document.getElementById(def.sliderId);
-        const valEl  = document.getElementById(def.valId);
+        const valEl = document.getElementById(def.valId);
         slider.addEventListener("input", () => {
           updateSliderTrack(slider);
           valEl.textContent = Number(slider.value);
@@ -2225,22 +2455,29 @@
       });
 
       // 초기화 버튼
-      document.querySelectorAll(".sp-reset").forEach(btn => {
+      document.querySelectorAll(".sp-reset").forEach((btn) => {
         btn.addEventListener("click", () => {
-          const def = SLIDER_DEFS.find(d => d.sliderId === btn.dataset.slider);
+          const def = SLIDER_DEFS.find(
+            (d) => d.sliderId === btn.dataset.slider,
+          );
           if (def) setSliderVal(def, def.default);
         });
       });
 
       // − / + 버튼 (1씩 증감, 슬라이더 min/max 범위 내)
-      document.querySelectorAll(".sp-step").forEach(btn => {
+      document.querySelectorAll(".sp-step").forEach((btn) => {
         btn.addEventListener("click", () => {
           const slider = document.getElementById(btn.dataset.slider);
-          const def    = SLIDER_DEFS.find(d => d.sliderId === btn.dataset.slider);
+          const def = SLIDER_DEFS.find(
+            (d) => d.sliderId === btn.dataset.slider,
+          );
           if (!slider || !def) return;
-          const dir  = +btn.dataset.dir;
+          const dir = +btn.dataset.dir;
           const step = +slider.step || 1;
-          const next = Math.min(+slider.max, Math.max(+slider.min, +slider.value + dir * step));
+          const next = Math.min(
+            +slider.max,
+            Math.max(+slider.min, +slider.value + dir * step),
+          );
           setSliderVal(def, next);
         });
       });
@@ -2248,7 +2485,10 @@
       // 이름 저장 (설정 패널 내)
       async function saveNameFromPanel() {
         const v = spNameInp.value.trim();
-        if (!v) { spNameInp.focus(); return; }
+        if (!v) {
+          spNameInp.focus();
+          return;
+        }
         userName = v;
         localStorage.setItem("gomis_user", userName);
         applyName(v);
@@ -2258,15 +2498,23 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: v }),
           });
-        } catch (_) { /* 앱 미실행 시 무시 */ }
+        } catch (_) {
+          /* 앱 미실행 시 무시 */
+        }
       }
 
-      document.getElementById("settingsBtn").addEventListener("click", openSettings);
+      document
+        .getElementById("settingsBtn")
+        .addEventListener("click", openSettings);
       spClose.addEventListener("click", closeSettings);
       spSave.addEventListener("click", saveSettings);
       spNameSaveBtn.addEventListener("click", saveNameFromPanel);
-      spNameInp.addEventListener("keydown", e => { if (e.key === "Enter") saveNameFromPanel(); });
-      spPanel.addEventListener("click", e => { if (e.target === spPanel) closeSettings(); });
+      spNameInp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") saveNameFromPanel();
+      });
+      spPanel.addEventListener("click", (e) => {
+        if (e.target === spPanel) closeSettings();
+      });
 
       // ─── SCATTER CANVAS — 부유 파티클 + 커서 날아가기 ──────
       const canvas = document.getElementById("scatter-canvas");
@@ -2433,7 +2681,7 @@
         }
       }
 
-      const CANVAS_FRAME_MS = 1000 / 30;  // scatter canvas 30fps 캡
+      const CANVAS_FRAME_MS = 1000 / 30; // scatter canvas 30fps 캡
       let _canvasLastFrame = 0;
       function renderCanvas(now) {
         requestAnimationFrame(renderCanvas);
@@ -2483,13 +2731,17 @@
 
       async function doStart() {
         try {
-          await fetchWithTimeout("http://localhost:7777/start", { method: "POST" });
+          await fetchWithTimeout("http://localhost:7777/start", {
+            method: "POST",
+          });
         } catch (_) {}
         setRun(true);
       }
       async function doStop() {
         try {
-          await fetchWithTimeout("http://localhost:7777/stop", { method: "POST" });
+          await fetchWithTimeout("http://localhost:7777/stop", {
+            method: "POST",
+          });
         } catch (_) {}
         setRun(false);
       }

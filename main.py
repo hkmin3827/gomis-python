@@ -15,6 +15,8 @@ class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 # MediaPipe 내부 Google 원격 측정 에러 로그 억제 (1회)
 os.environ.setdefault("GLOG_minloglevel", "3")
+# Qt DPI 자동 스케일링 — Windows 화면 배율 반영해 브라우저와 동일한 폰트 크기로 렌더링
+os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
 
 # PyInstaller 빌드 시 torch/lib 디렉토리를 DLL 검색 경로에 먼저 등록해야
@@ -146,11 +148,10 @@ def main():
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtCore import Qt
     import PyQt5.QtWebEngineWidgets  # noqa: F401 — QApplication 전에 임포트 필수
-    # QWebEngineView 다중 창 WebGL 공유 — QApplication 생성 전 필수
+    # QApplication 생성 전 필수 속성
     QApplication.setAttribute(Qt.ApplicationAttribute(4))  # AA_ShareOpenGLContexts
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # 창 닫아도 트레이에 유지
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     config    = load_config()
     features  = config["features"]
@@ -322,8 +323,10 @@ def main():
                 # TTS 종료 직후 오디오 드라이버 전환 딜레이 — input overflow 방지
                 time.sleep(0.4)
                 claude_state["status"] = "recording"
-                gomis_dash.set_state("listening")
-                voice_typer.start(max_sec=60)
+                voice_typer.start(
+                    max_sec=60,
+                    on_started=lambda: gomis_dash.set_state("listening"),
+                )
 
             _name    = app_state["user_name"]
             greeting = f"네 {_name}님 무엇을 도와드릴까요?" if _name else "네 무엇을 도와드릴까요?"
@@ -461,6 +464,10 @@ def main():
     _state_timer = QTimer()
     _state_timer.timeout.connect(_poll_app_state)
     _state_timer.start(200)
+
+    # Ctrl+C → 트레이 종료와 동일한 그레이스풀 셧다운
+    # _state_timer(200ms)가 Qt 이벤트 루프를 주기적으로 Python에 양보시켜 SIGINT가 처리됨
+    signal.signal(signal.SIGINT, lambda *_: _shutdown(app, cam, tracker, windows, voice_typer))
 
     # 앱 시작: 대시보드만 오픈. 트레이/Gomis 창은 START 버튼 누를 때 표시
     main_dashboard.show()

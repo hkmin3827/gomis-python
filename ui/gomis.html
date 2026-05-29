@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>Gomis</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css"
+    />
     <style>
       html,
       body {
@@ -24,20 +28,21 @@
         z-index: 10;
       }
       #status {
-        font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-        font-size: 14px;
+        font-family: "Pretendard", "Malgun Gothic", sans-serif;
+        font-size: clamp(10px, 2.5vw, 14px);
         letter-spacing: 4px;
-        color: rgba(205, 165, 255, 0.92);
+        font-weight: 500;
+        color: #f6f6f6ca;
         text-shadow: 0 0 22px rgba(170, 100, 255, 0.85);
         transition: opacity 0.35s ease;
       }
       #name {
         margin-top: 10px;
-        font-family: "Courier New", monospace;
-        font-size: 10px;
-        font-weight: 500;
+        font-family: "Pretendard", "Malgun Gothic", sans-serif;
+        font-size: clamp(7px, 1.8vw, 10px);
+        font-weight: 400;
         letter-spacing: 7px;
-        color: rgba(130, 90, 195, 0.48);
+        color: #f6f6f6ca;
       }
       #loading {
         position: fixed;
@@ -45,7 +50,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: rgba(180, 130, 255, 0.7);
-        font-family: "Courier New", monospace;
+        font-family: "Pretendard", "Malgun Gothic", sans-serif;
         font-size: 12px;
         letter-spacing: 3px;
         z-index: 20;
@@ -163,27 +168,48 @@
         }
 
         function createStarfield() {
-          const count = 1000;
+          const count = 500;
           const geo = new THREE.BufferGeometry();
           const positions = new Float32Array(count * 3);
           const velocities = new Float32Array(count * 3);
+          const sizes = new Float32Array(count);
 
           for (let i = 0; i < count; i++) {
             randomStarPosition(positions, i);
             randomStarVelocity(velocities, i);
+            sizes[i] = 0.6 + Math.random() * 2.4; // 0.6 ~ 3.0 랜덤
           }
           geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+          geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
 
-          const mat = new THREE.PointsMaterial({
-            color: 0x9090a8,
-            size: 0.73,
-            map: dotTexture,
+          const mat = new THREE.ShaderMaterial({
+            uniforms: {
+              map: { value: dotTexture },
+              opacity: { value: 0.38 },
+              color: { value: new THREE.Color(0x9090a8) },
+            },
+            vertexShader: `
+              attribute float size;
+              void main() {
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = size * (300.0 / -mv.z);
+                gl_Position  = projectionMatrix * mv;
+              }
+            `,
+            fragmentShader: `
+              uniform sampler2D map;
+              uniform float opacity;
+              uniform vec3 color;
+              void main() {
+                vec4 tex = texture2D(map, gl_PointCoord);
+                gl_FragColor = vec4(color, opacity) * tex;
+              }
+            `,
             transparent: true,
-            opacity: 0.38,
             depthWrite: false,
-            sizeAttenuation: true,
             blending: THREE.AdditiveBlending,
           });
+
           const points = new THREE.Points(geo, mat);
           points.userData.velocities = velocities;
           return points;
@@ -395,7 +421,7 @@
            10. 애니메이션 루프 (30fps 캡 — CPU 과부하 방지)
            ============================================================ */
         const clock = new THREE.Clock();
-        const FRAME_MS = 1000 / 30;  // 30fps
+        const FRAME_MS = 1000 / 30; // 30fps
         let _lastFrame = 0;
 
         // 보간용 현재값 (상태 전환 시 부드럽게 변화)
