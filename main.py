@@ -13,24 +13,26 @@ class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """요청마다 별도 스레드 처리 — 한 요청이 느려도 다음 요청 차단하지 않음."""
     daemon_threads = True
 
-# MediaPipe 내부 Google 원격 측정 에러 로그 억제 (1회)
-os.environ.setdefault("GLOG_minloglevel", "3")
+# MediaPipe 내부 Google 원격 측정 에러 로그 억제
+# setdefault는 외부 환경변수가 먼저 세팅되어 있으면 덮어쓰지 않아 억제 실패 → 강제 할당
+os.environ["GLOG_minloglevel"] = "2"
 # Qt DPI 자동 스케일링 — Windows 화면 배율 반영해 브라우저와 동일한 폰트 크기로 렌더링
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
-
-# PyInstaller 빌드 시 torch/lib 디렉토리를 DLL 검색 경로에 먼저 등록해야
-# c10.dll WinError 1114 (DLL 초기화 실패) 방지됨.
-# Qt가 DLL 검색 경로를 변경하기 전에 반드시 실행.
+# ctranslate2(faster-whisper 엔진)가 내부적으로 torch를 import함.
+# Qt 초기화 후 torch가 로드되면 Qt가 변경한 DLL 경로와 충돌 → c10.dll WinError 1114 발생.
+# Qt보다 먼저 torch를 로드해 DLL을 선점해야 함.
 if getattr(sys, 'frozen', False):
     _torch_lib = os.path.join(getattr(sys, '_MEIPASS', ''), 'torch', 'lib')
     if os.path.isdir(_torch_lib):
-        _torch_dll_dir = os.add_dll_directory(_torch_lib)  # noqa: F841 — GC되면 등록 해제되므로 반환값 유지 필수
+        _torch_dll_dir = os.add_dll_directory(_torch_lib)  # noqa: F841
         os.environ['PATH'] = _torch_lib + os.pathsep + os.environ.get('PATH', '')
 try:
-    import torch  # noqa: F401  # type: ignore[import]
+    import torch  # noqa: F401
 except Exception:
     pass
+
+
 
 CONFIG_PATH = Path(__file__).parent / "config" / "settings.json"
 

@@ -10,7 +10,7 @@
     "sensitivity": 0.5,
     "cursor_smoothing": 0.7,
     "click_threshold": 0.04,
-    "cursor_speed": 70,
+    "cursor_speed": 65,
     "scroll_speed": 40,
     "volume_step": 3.0,
     "zoom_delta": 20
@@ -26,10 +26,7 @@
     "show_landmarks": true,
     "show_fps": true,
     "show_gesture_label": true,
-    "preview_window_size": [
-      640,
-      480
-    ]
+    "preview_window_size": [640, 480]
   },
   "features": {
     "cursor": true,

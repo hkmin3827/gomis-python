@@ -61,7 +61,11 @@ class ClaudeResult:
 _SYSTEM_INSTRUCTION = (
     "너의 이름은 Gomis야. 답변은 3문장 이내의 간결한 구어체 한국어 존댓말로만 해. "
     "마크다운, 목록, 기호는 절대 쓰지 마. "
-    "핵심만 말하고 불필요한 인사말도 빼."
+    "핵심만 말하고 불필요한 인사말도 빼. "
+    "기온·습도·미세먼지·강수량·환율·주가 등 수치로 표현 가능한 정보는 반드시 구체적인 숫자와 단위로 답해. "
+    "예: '더운 날씨' 대신 '최고 32도', '미세먼지 나쁨' 대신 'PM2.5 75㎍/㎥'. "
+    "실시간 데이터가 필요한 질문(현재 날씨·주가·환율·뉴스 등)은 반드시 웹 검색을 먼저 수행하고 "
+    "검색 결과에서 얻은 실제 수치로 답해. 검색 결과가 없을 때만 모른다고 말해."
 )
 
 
@@ -82,7 +86,8 @@ def ask_claude(prompt: str, timeout: int = 60) -> ClaudeResult:
     log.info(f"Claude 호출: {prompt[:80]}")
     try:
         result = subprocess.run(
-            ["claude", "-p", full_prompt],
+            ["claude", "-p", full_prompt, "--model", "claude-haiku-4-5-20251001",
+             "--allowedTools", "WebSearch"],
             capture_output=True,
             text=True,
             timeout=timeout,

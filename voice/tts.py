@@ -11,6 +11,7 @@ import time
 log = logging.getLogger("voice")
 
 _VOICE = "ko-KR-HyunsuMultilingualNeural"   # edge-tts 한국어 고품질 음성
+_RATE = "+15%"   # 말하기 속도: -50% ~ +100%, 기본값 +0%
 
 
 def speak(text: str) -> None:
@@ -51,7 +52,7 @@ def _speak_edge_tts(text: str) -> None:
     import edge_tts
 
     async def _run():
-        communicate = edge_tts.Communicate(text, _VOICE)
+        communicate = edge_tts.Communicate(text, _VOICE, rate=_RATE)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
             tmp_path = f.name
         try:

@@ -21,6 +21,9 @@ a = Analysis(
         (str(ROOT / 'ui' / 'dashboard.html'), 'ui'),
         # MediaPipe 내부 리소스 (모델/그래프 파일)
         (str(ROOT / 'venv' / 'Lib' / 'site-packages' / 'mediapipe'), 'mediapipe'),
+        # faster-whisper small 모델 (HuggingFace 캐시에서 번들에 내장)
+        # 첫 실행 다운로드 불필요, 오프라인 동작, 심링크 경고 없음
+        (r'C:\Users\hkmin\.cache\huggingface\hub\models--Systran--faster-whisper-small\snapshots\536b0662742c02347bc0e980a01041f333bce120', 'whisper_model'),
     ],
     hiddenimports=[
         # PyQt5 WebEngine

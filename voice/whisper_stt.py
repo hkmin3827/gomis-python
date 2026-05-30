@@ -35,6 +35,10 @@ logging.basicConfig(
 )
 log = logging.getLogger("voice")
 
+# faster-whisper / HuggingFace 내부 HTTP DEBUG 로그 억제
+for _noisy in ("httpcore", "httpx", "huggingface_hub", "hf_hub_download", "filelock"):
+    logging.getLogger(_noisy).setLevel(logging.ERROR)
+
 
 class VoiceTyper:
     """녹음 시작/종료 후 Whisper로 텍스트 변환 → 현재 포커스 창에 타이핑."""
@@ -178,29 +182,39 @@ class VoiceTyper:
         except Exception as e:
             log.error(f"백그라운드 모델 로드 실패: {e}", exc_info=True)
         finally:
-            self._model_ready.set()  # 실패해도 set → start()가 무한 대기하지 않도록
+            self._model_ready.set()
 
     def _load_model(self):
         if self._model is None:
-            log.info(f"Whisper 모델 로드 시작: {self._model_name} / device=cpu")
-            import whisper
-            self._model = whisper.load_model(self._model_name, device="cpu")
+            from faster_whisper import WhisperModel
+            if getattr(sys, 'frozen', False):
+                # exe 번들 내장 모델 사용 — 인터넷/캐시 불필요
+                model_path = str(Path(getattr(sys, "_MEIPASS", "")) / "whisper_model")
+                log.info(f"Whisper 모델 로드 시작 (번들 내장): {model_path}")
+                self._model = WhisperModel(model_path, device="cpu", compute_type="int8")
+            else:
+                log.info(f"Whisper 모델 로드 시작: {self._model_name} / device=cpu (faster-whisper)")
+                log.info("※ 첫 실행 시 HuggingFace에서 모델 다운로드 (~460MB) — 완료까지 기다려 주세요")
+                self._model = WhisperModel(self._model_name, device="cpu", compute_type="int8")
             log.info("Whisper 모델 로드 완료")
 
     def _transcribe(self, audio: np.ndarray) -> str:
-        import re
-        result = self._model.transcribe(
+        import noisereduce as nr
+        # 녹음 초반 0.3초를 배경 소음 샘플로 추정해 제거
+        noise_sample = audio[:int(self.SAMPLE_RATE * 0.3)]
+        audio = nr.reduce_noise(y=audio, sr=self.SAMPLE_RATE,
+                                y_noise=noise_sample, stationary=True)
+        segments, _ = self._model.transcribe(
             audio,
             language=self._language,
-            fp16=False,
-            condition_on_previous_text=False,  # 이전 결과에 의존하지 않음 — 할루시네이션 방지
-            temperature=0,                      # greedy decoding — 무작위 토큰 생성 방지
+            condition_on_previous_text=False,
+            temperature=0,
             no_speech_threshold=0.6,
+            initial_prompt="한국어로 말하는 음성 명령입니다. 날씨, 검색, 앱 실행, 파일, 볼륨, 창 전환 등의 명령어가 포함됩니다.",
+            beam_size=5,
+            vad_filter=True,   # 무음 구간 자동 제거 → 추론 속도 향상
         )
-        text = result["text"].strip()
-        # <|특수토큰|> 패턴 제거 (언어 태그, 타임스탬프 등이 텍스트에 섞이는 경우)
-        text = re.sub(r'<\|[^|]+\|>', '', text).strip()
-        return text
+        return "".join(seg.text for seg in segments).strip()
 
     @staticmethod
     def _type_text(text: str, auto_enter: bool, target_hwnd: int = 0) -> None:

@@ -11,14 +11,11 @@ pywin32>=306
 pycaw>=20230407
 comtypes>=1.2.0
 
-# 음성 인식 (Whisper 로컬)
-openai-whisper>=20231117
+# 음성 인식 (faster-whisper 로컬)
+faster-whisper>=1.0.0   # CTranslate2 기반 — openai-whisper 대비 2~4배 빠름
+noisereduce>=3.0.0      # 배경 소음 제거 (Whisper 전처리)
 sounddevice>=0.4.6      # 실시간 마이크 녹음 (PortAudio 내장)
 pyperclip>=1.8.2        # 클립보드 경유 한글 타이핑
-# Whisper 의존성
-torch>=2.0.0
-torchaudio>=2.0.0
-ffmpeg-python>=0.2.0
 
 # Claude 연동 (TTS)
 edge-tts>=6.1.9         # 무료 온라인 TTS (Microsoft Azure 기반)

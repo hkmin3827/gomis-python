@@ -7,7 +7,7 @@ from resource_path import resource_path
 
 
 class DashboardWindow(QMainWindow):
-    closed = pyqtSignal()  # 창 닫힐 때 트레이 show 신호
+    closed = pyqtSignal()
 
     def __init__(self):
         super().__init__()
