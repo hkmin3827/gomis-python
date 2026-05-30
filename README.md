@@ -29,7 +29,7 @@
 
 - **완전 로컬 실행** — 인터넷 연결 불필요, 원격 서버 없음
 - **OS 접근 수준** — 일반 사용자 권한만 사용. 커서·클릭은 PyAutoGUI가 Windows `SendInput()` API를 통해 가상 이벤트로 전송 (드라이버·커널 접근 없음)
-- **음성 인식** — Whisper 로컬 모델, 외부 전송 없음
+- **음성 인식** — faster-whisper(CTranslate2 기반) 로컬 모델, 외부 전송 없음
 - **Claude 연동** — `claude -p` CLI subprocess, 로그인 계정의 Claude 요금제 차감 (별도 API 키 불필요, 매 호출 새 세션)
 
 ---
@@ -44,7 +44,7 @@
 | 볼륨 제어        | pycaw (Windows COM API)     |
 | 창 전환          | pywin32 (Win32 API)         |
 | UI               | PyQt5 + pystray             |
-| 음성 인식 (STT)  | OpenAI Whisper (로컬)       |
+| 음성 인식 (STT)  | faster-whisper (CTranslate2, 로컬) |
 | TTS              | edge-tts / pyttsx3 (무료)   |
 | Claude 연동      | Claude Code CLI subprocess  |
 
@@ -119,6 +119,7 @@
 ```
 gomis-prj/
 ├── main.py                    # 앱 엔트리포인트 + HTTP 브리지 서버 (포트 7777)
+├── resource_path.py           # PyInstaller 번들/개발 환경 리소스 경로 해석
 ├── core/
 │   ├── camera.py              # OpenCV 카메라 캡처
 │   ├── hand_tracker.py        # MediaPipe 손 랜드마크 추출
@@ -131,20 +132,23 @@ gomis-prj/
 │   ├── window_switcher.py     # 창 전환
 │   └── zoom.py                # 줌 인/아웃
 ├── voice/
-│   ├── whisper_stt.py         # Whisper 로컬 음성 인식 (sounddevice + Whisper)
+│   ├── whisper_stt.py         # faster-whisper 로컬 음성 인식 (sounddevice + faster-whisper)
 │   ├── claude_client.py       # Claude Code CLI subprocess 호출
 │   └── tts.py                 # TTS 재생 (edge-tts / pyttsx3 폴백)
 ├── ui/
 │   ├── preview_window.py      # PyQt5 카메라 미리보기 창
 │   ├── tray.py                # 시스템 트레이 아이콘
 │   ├── gomis_dashboard.py     # PyQt5 WebEngine 대시보드 창
+│   ├── dashboard_window.py    # 대시보드 WebEngine 창 래퍼 (QMainWindow)
+│   ├── icon_helper.py         # 전 창 공통 앱 아이콘 헬퍼 (weakref 캐시)
 │   ├── dashboard.html         # Gomis 파티클 대시보드 UI (Three.js + 제스처 카드)
 │   └── gomis.html             # Gomis 3D 파티클 구체 렌더러
 ├── config/
-│   └── settings.json          # 카메라·제스처 감도·기능 ON/OFF·사용자 이름
+│   ├── settings.json          # 카메라·제스처 감도·기능 ON/OFF·사용자 이름 (git 제외)
+│   └── settings.example.json  # 설정 기본값 템플릿
 ├── docs/
-│   ├── index.html             # 배포용 랜딩 페이지 (GitHub Pages)
-│   └── blog-draft-01.html     # 개발 블로그 포스트
+│   ├── blog-draft-01.html     # 개발 블로그 포스트
+│   └── DEPLOY.md              # 배포 가이드
 ├── tasks/
 │   ├── todo.md                # 개발 체크리스트
 │   └── progress.md            # 작업 기록
@@ -205,12 +209,12 @@ gomis-prj/
 
 ## 변경 이력
 
-### 2026-05-30 — 코드 품질 개선 + 시작 시간·메모리 최적화
+### 2026-05-30 — 배포 빌드 크래시 해결(MSVCP140) + 코드 품질·시작 시간 최적화
 
 | 항목 | 내용 |
 |------|------|
-| **torch stub 도입** | ctranslate2가 선택적으로 torch를 탐지할 때 실제 torch DLL(200MB+) 로드를 차단. `sys.modules`에 최소 stub을 선등록해 libiomp5md 중복 충돌(WinError 1114) 원천 해소 |
-| **KMP_DUPLICATE_LIB_OK 제거** | 전역 OpenMP 안전 체크 비활성화 플래그 제거. torch stub으로 충돌 원인 자체를 없앰 |
+| **MSVCP140 DLL 충돌 해결 (근본 원인)** | exe 실행 시 faster-whisper 모델 로드 직후 액세스 위반(`0xC0000005`)으로 무음 크래시 → 원인은 PyQt5가 번들한 **구버전 VC 런타임(MSVCP140.dll 14.26)** 이 Qt 시작 시 상주해 ctranslate2의 최신 심볼 호출과 충돌. `gomis.spec`에서 번들 내 모든 VC 런타임을 시스템 최신(14.44)으로 통일해 근본 해결 |
+| **torch stub 제거 / KMP 플래그 복원** | 앞서 도입한 torch stub은 실제 원인(MSVCP140)이 아니었고, `noisereduce`가 `torch.nn.functional`을 실제로 요구해 stub과 호환 불가. 실제 torch를 그대로 사용하고 OpenMP 중복 로드(libiomp5md) 안전장치로 `KMP_DUPLICATE_LIB_OK=TRUE` 복원 |
 | **ctranslate2 lazy 로드** | 앱 시작 시 선제 import 제거 → VoiceTyper 첫 사용 시점에 lazy 로드. 비음성 세션에서 추가 시작 지연 없음 |
 | **앱 아이콘 통일** | `ui/icon_helper.py` 신규 생성 — 모든 창(트레이, 미리보기, 대시보드)에 동일 아이콘 적용. PNG 미존재 시 시스템 기본 아이콘 fallback |
 | **아이콘 캐시 안전성** | `weakref` 기반 QApplication 인스턴스 추적 — QApplication 재생성 시 stale QIcon 자동 무효화 |

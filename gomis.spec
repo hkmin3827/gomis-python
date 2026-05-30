@@ -78,25 +78,20 @@ a = Analysis(
         'sklearn',
         'PIL.ImageTk',   # tkinter 관련
         'tkinter',
-        # torch CUDA 모듈 (CPU 전용 빌드)
-        'torch.cuda',
-        'torch.distributed',
-        'torch.testing',
-        'torchaudio',
-        # torch._inductor — PyInstaller 격리 서브프로세스 크래시 원인, Whisper 미사용
+        # torch 미사용 서브모듈만 선별 제외 (CPU 전용 빌드)
+        # ※ import torch가 실제 로드하는 서브모듈(cuda·distributed·testing·ao·
+        #    fx.experimental·quantization·profiler)은 제외하면 `import torch` 자체가
+        #    ModuleNotFoundError로 깨진다 → 절대 제외 금지. 아래는 import torch가
+        #    로드하지 않음을 확인한 항목만 제외한다.
+        'torchaudio',                       # 별도 패키지, 미사용
+        # torch._inductor — PyInstaller 격리 서브프로세스 크래시 원인, import torch 미로드
         'torch._inductor',
         'torch._inductor.codegen',
         'torch._inductor.fx_passes',
         'torch._inductor.kernel',
         'torch._inductor.autoheuristic',
         'torch._inductor.lookup_table',
-        'torch.ao',
-        'torch.ao.quantization',
-        'torch.ao.pruning',
-        'torch.fx.experimental',
-        'torch.onnx',
-        'torch.quantization',
-        'torch.profiler',
+        'torch.onnx',                       # import torch 미로드 (faster-whisper는 onnxruntime 사용)
         'torch.utils.tensorboard',
         'tensorboard',
         # numba/llvmlite — 프로젝트 미사용, tbb12.dll 의존성 차단

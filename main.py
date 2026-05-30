@@ -31,6 +31,13 @@ if getattr(sys, 'frozen', False):
         except Exception:
             pass
 
+# ── torch 선로드 (DLL 동시 초기화 경쟁 방지) — 반드시 다른 네이티브 모듈보다 먼저 ──
+# torch의 c10.dll은 Qt·QtWebEngine·MediaPipe·pycaw(COM) 등 다른 네이티브 런타임이
+# 먼저 로드된 뒤에 불러오면 OpenMP/로더 락 경합으로 초기화가 깨진다([WinError 1114]).
+# 무엇보다 먼저, 메인 스레드에서 torch를 완전히 로드해 c10.dll을 선점 초기화한다.
+# (KMP_DUPLICATE_LIB_OK가 위에서 먼저 설정돼 있어야 함)
+import torch  # noqa: E402,F401
+
 
 CONFIG_PATH = Path(__file__).parent / "config" / "settings.json"
 

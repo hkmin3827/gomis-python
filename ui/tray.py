@@ -17,6 +17,10 @@ class TrayIcon(QObject):
 
         menu = QMenu()
 
+        _menu_font = menu.font()
+        _menu_font.setPointSize(8)
+        menu.setFont(_menu_font)
+
         act_dashboard = QAction("대시보드 열기", menu)
         act_dashboard.triggered.connect(self.dashboard_toggled.emit)
         menu.addAction(act_dashboard)
