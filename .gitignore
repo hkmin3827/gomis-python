@@ -47,3 +47,5 @@ SECURITY.md
 docs/
 build_log.txt
 check_mic.py
+
+config/settings.json

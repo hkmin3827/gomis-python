@@ -53,14 +53,8 @@ if getattr(sys, 'frozen', False):
     if os.path.isdir(_ct2_dll):
         try:
             _dll_handle = os.add_dll_directory(_ct2_dll)  # noqa: F841 — GC 방지
-            os.environ['PATH'] = _ct2_dll + os.pathsep + os.environ.get('PATH', '')
         except Exception:
             pass
-try:
-    import ctranslate2  # noqa: F401 — Qt 초기화 전 ctranslate2 DLL 선점
-except Exception:
-    pass
-
 
 
 CONFIG_PATH = Path(__file__).parent / "config" / "settings.json"
