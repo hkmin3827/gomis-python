@@ -1,11 +1,9 @@
-# 환경변수 (절대 커밋 금지)
 .env
 *.key
 *.pem
 id_rsa
 credentials*
 
-# 가상환경
 venv/
 .venv/
 
@@ -20,32 +18,31 @@ __pycache__/
 core/*.task
 *.task
 
-# IDE
 .vscode/
 .idea/
 *.swp
 
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# 빌드/배포
 dist/
 build/
 *.egg-info/
 *.zip
 
-# 로그
 *.log
 logs/
 
-
+# 개인
 tasks/
 .claude/
 SECURITY.md
 docs/
+
+# 테스트
 build_log.txt
 check_mic.py
 
+# 앱 default 설정
 config/settings.json

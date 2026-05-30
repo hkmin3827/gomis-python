@@ -205,6 +205,19 @@ gomis-prj/
 
 ## 변경 이력
 
+### 2026-05-30 — 코드 품질 개선 + 시작 시간·메모리 최적화
+
+| 항목 | 내용 |
+|------|------|
+| **torch stub 도입** | ctranslate2가 선택적으로 torch를 탐지할 때 실제 torch DLL(200MB+) 로드를 차단. `sys.modules`에 최소 stub을 선등록해 libiomp5md 중복 충돌(WinError 1114) 원천 해소 |
+| **KMP_DUPLICATE_LIB_OK 제거** | 전역 OpenMP 안전 체크 비활성화 플래그 제거. torch stub으로 충돌 원인 자체를 없앰 |
+| **ctranslate2 lazy 로드** | 앱 시작 시 선제 import 제거 → VoiceTyper 첫 사용 시점에 lazy 로드. 비음성 세션에서 추가 시작 지연 없음 |
+| **앱 아이콘 통일** | `ui/icon_helper.py` 신규 생성 — 모든 창(트레이, 미리보기, 대시보드)에 동일 아이콘 적용. PNG 미존재 시 시스템 기본 아이콘 fallback |
+| **아이콘 캐시 안전성** | `weakref` 기반 QApplication 인스턴스 추적 — QApplication 재생성 시 stale QIcon 자동 무효화 |
+| **settings.json git 분리** | 개인 설정을 git에서 분리 (`git rm --cached`). `config/settings.example.json` 추가 (기본값 템플릿) |
+
+---
+
 ### 2026-05-29 — UI 아키텍처 재설계 + 성능 최적화
 
 | 항목 | 내용 |
