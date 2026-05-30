@@ -13,39 +13,14 @@ class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """요청마다 별도 스레드 처리 — 한 요청이 느려도 다음 요청 차단하지 않음."""
     daemon_threads = True
 
-# MediaPipe 내부 Google 원격 측정 에러 로그 억제
-# setdefault는 외부 환경변수가 먼저 세팅되어 있으면 덮어쓰지 않아 억제 실패 → 강제 할당
 os.environ["GLOG_minloglevel"] = "2"
 # Qt DPI 자동 스케일링 — Windows 화면 배율 반영해 브라우저와 동일한 폰트 크기로 렌더링
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
-# 이 앱은 faster-whisper를 device="cpu"로만 사용 → torch 불필요.
-# ctranslate2가 선택적으로 torch를 탐지할 때 실제 torch DLL(libiomp5md 포함)이
-# 로드되지 않도록 sys.modules에 최소 stub을 먼저 등록한다.
-# 효과: libiomp5md 중복 로드(WinError 1114) 원천 차단, KMP 플래그 불필요.
-import types as _types
-
-_torch_stub = _types.ModuleType('torch')
-_torch_nn_stub = _types.ModuleType('torch.nn')
-for _attr, _val in {
-    '__version__': '0.0.0',
-    '__spec__': None,
-    'cuda': _types.SimpleNamespace(
-        is_available=lambda: False,
-        device_count=lambda: 0,
-        current_device=lambda: 0,
-    ),
-    'Tensor': object,
-    'float16': 'float16',
-    'float32': 'float32',
-    'int8': 'int8',
-    'device': lambda *_: 'cpu',
-    'nn': _torch_nn_stub,
-}.items():
-    setattr(_torch_stub, _attr, _val)
-setattr(_torch_nn_stub, 'Module', object)
-sys.modules.setdefault('torch', _torch_stub)
-sys.modules.setdefault('torch.nn', _torch_nn_stub)
+# faster-whisper(ctranslate2)와 torch(noisereduce가 요구)가 각자 libiomp5md.dll (Intel OpenMP)을 번들 같은 프로세스에서 두 OpenMP 런타임이 동시 초기화 시 충돌 가능성. 
+# Intel 공식 우회 옵션으로 중복 로드를 허용
+# fix: 크래시 원인이던 MSVCP140 버전 불일치는 gomis.spec에서 시스템 최신 VC 런타임으로 통일해 해결
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 if getattr(sys, 'frozen', False):
     _meipass = getattr(sys, '_MEIPASS', '')
@@ -254,7 +229,7 @@ def main():
 
     cam.open()
 
-    # ── 백그라운드 캡처/추론 스레드 ──────────────────────────────────
+    # ── 백그라운드 캡처/추론 스레드 ──
     # cam.read() + MediaPipe 추론을 Qt 타이머와 분리.
     # Qt 타이머는 항상 최신 결과만 읽어 일정한 33ms 간격 유지 → 커서 끊김 제거.
     _cap_state = {"frame": None, "hands": []}
@@ -294,7 +269,7 @@ def main():
         for h in hands:
             tracker.draw(frame, h.landmarks)
 
-        # ── 잠금 토글 감지 (잠금 중에도 항상 체크) ───────────────────
+        # ── 잠금 토글 감지 (잠금 중에도 항상 체크) ───
         lock_trigger = engine.detect_lock(hands)
         if lock_trigger == GESTURE_LOCK_TOGGLE:
             lock_state["locked"] = not lock_state["locked"]
@@ -305,11 +280,11 @@ def main():
                 gomis_dash.set_state("idle")
                 tray.notify("Gomis 🔓", "잠금 모드 OFF")
 
-        # ── 잠금 상태이면 이하 모든 제스처 처리 건너뜀 ──────────────
+        # ── 잠금 상태이면 이하 모든 제스처 처리 건너뜀 ───
         if lock_state["locked"]:
             return frame, "[🔒 잠금 모드]", engine.state, hand.handedness if hand else None
 
-        # ── 박수: 음성 타이핑 ──────────────────────────────────────────
+        # ── 박수: 음성 타이핑 ───
         clap = engine.detect_clap(hands)
         if clap == GESTURE_VOICE_START and voice_state["status"] == "idle" \
                 and claude_state["status"] == "idle":
@@ -340,11 +315,10 @@ def main():
 
             threading.Thread(target=_do_transcribe, daemon=True).start()
 
-        # ── 손가락 모으기: Claude 대화 ────────────────────────────────
+        # ── 손가락 모으기: Claude 대화 ───
         claude_trigger = engine.detect_claude_trigger(hands)
         if claude_trigger == GESTURE_CLAUDE_START and claude_state["status"] == "idle" \
                 and voice_state["status"] == "idle":
-            # 인사말 TTS → 완료 후 녹음 시작 (Claude 호출 없음)
             claude_state["status"] = "greeting"
             gomis_dash.set_state("speaking")
 
@@ -375,7 +349,7 @@ def main():
                     result = ask_claude(text)
 
                     if not result.ok:
-                        # ── 에러 타입별 처리 ────────────────────────────
+                        # ── 에러 타입별 처리 ───
                         if result.error_type == NOT_INSTALLED:
                             gomis_dash.show_error_dialog(
                                 "Claude CLI 설치 필요",
@@ -422,7 +396,7 @@ def main():
 
             threading.Thread(target=_do_claude, daemon=True).start()
 
-        # ── 단일 손 제스처 — 양손이면 발화 차단 ─────────────────────
+        # ── 단일 손 제스처 — 양손이면 발화 차단 ───
         if not both_hands:
             if features.get("cursor") and gesture == GESTURE_CURSOR and hand:
                 cursor.move(hand.landmarks)
@@ -491,11 +465,9 @@ def main():
     _state_timer.timeout.connect(_poll_app_state)
     _state_timer.start(200)
 
-    # Ctrl+C → 트레이 종료와 동일한 그레이스풀 셧다운
     # _state_timer(200ms)가 Qt 이벤트 루프를 주기적으로 Python에 양보시켜 SIGINT가 처리됨
     signal.signal(signal.SIGINT, lambda *_: _shutdown(app, cam, tracker, windows, voice_typer))
 
-    # 앱 시작: 대시보드만 오픈. 트레이/Gomis 창은 START 버튼 누를 때 표시
     main_dashboard.show()
 
     sys.exit(app.exec_())

@@ -10,7 +10,10 @@ ROOT = Path(SPECPATH)
 a = Analysis(
     [str(ROOT / 'main.py')],
     pathex=[str(ROOT)],
-    binaries=[],
+    binaries=[
+        # ctranslate2 런타임에서 동적 로드 — PyInstaller 자동 감지 안 됨
+        (str(ROOT / 'venv' / 'Lib' / 'site-packages' / 'ctranslate2' / 'cudnn64_9.dll'), 'ctranslate2'),
+    ],
     datas=[
         # 앱 로고 (아이콘)
         (str(ROOT / 'assets' / 'app-logo.png'), 'assets'),
@@ -26,6 +29,9 @@ a = Analysis(
         # faster-whisper small 모델 (HuggingFace 캐시에서 번들에 내장)
         # 첫 실행 다운로드 불필요, 오프라인 동작, 심링크 경고 없음
         (r'C:\Users\hkmin\.cache\huggingface\hub\models--Systran--faster-whisper-small\snapshots\536b0662742c02347bc0e980a01041f333bce120', 'whisper_model'),
+        # faster-whisper Silero VAD 모델 (vad_filter=True 시 런타임 로드 — PyInstaller 자동 수집 안 됨)
+        # ※ onnx 파일만 복사 — assets 디렉터리 통째 복사 시 __init__.py가 PYZ의 faster_whisper 패키지를 섀도잉할 수 있음
+        (str(ROOT / 'venv' / 'Lib' / 'site-packages' / 'faster_whisper' / 'assets' / 'silero_vad_v6.onnx'), 'faster_whisper/assets'),
     ],
     hiddenimports=[
         # PyQt5 WebEngine
@@ -64,7 +70,7 @@ a = Analysis(
     ],
     excludes=[
         # 사용하지 않는 대형 패키지
-        'scipy',
+        # ※ scipy는 noisereduce(scipy.signal)가 요구하므로 제외하면 안 됨 — transcribe 단계 크래시 원인
         'pandas',
         'IPython',
         'jupyter',
@@ -100,6 +106,27 @@ a = Analysis(
     noarchive=False,
     optimize=1,
 )
+
+# ── PyQt5가 번들하는 구버전 VC 런타임(14.26)을 시스템 최신 버전으로 교체 ──
+# ctranslate2.dll은 최신 MSVCP140 심볼을 요구하는데, Qt가 시작 시 먼저 로드한
+# 구버전 MSVCP140.dll(Qt5/bin, 14.26)이 프로세스에 상주해 ctranslate2 모델 로드
+# 시점에 액세스 위반(0xC0000005)으로 크래시한다. 번들 내 모든 VC 런타임 복사본을
+# 시스템 System32의 최신 버전(14.44)으로 통일해 근본 해결한다.
+import os as _os
+_VC_RUNTIME = {
+    'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll',
+    'vcruntime140.dll', 'vcruntime140_1.dll', 'concrt140.dll',
+}
+_SYS32 = _os.path.join(_os.environ.get('SystemRoot', r'C:\Windows'), 'System32')
+_fixed_binaries = []
+for _entry in a.binaries:
+    _dest, _src, _typ = _entry
+    if _os.path.basename(_dest).lower() in _VC_RUNTIME:
+        _sysdll = _os.path.join(_SYS32, _os.path.basename(_dest))
+        if _os.path.isfile(_sysdll):
+            _entry = (_dest, _sysdll, _typ)  # 소스를 시스템 최신 DLL로 교체
+    _fixed_binaries.append(_entry)
+a.binaries = _fixed_binaries
 
 pyz = PYZ(a.pure, a.zipped_data)
 

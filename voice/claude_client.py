@@ -4,10 +4,13 @@ Claude Code CLI subprocess 호출 모듈.
 """
 import logging
 import subprocess
+import sys
 from dataclasses import dataclass
 from typing import Optional
 
 log = logging.getLogger("voice")
+
+_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 # 에러 타입 상수
 NOT_INSTALLED     = "not_installed"
@@ -92,6 +95,7 @@ def ask_claude(prompt: str, timeout: int = 60) -> ClaudeResult:
             text=True,
             timeout=timeout,
             encoding="utf-8",
+            creationflags=_NO_WINDOW,   # 콘솔 창 깜빡임 방지
         )
         response = result.stdout.strip()
 
