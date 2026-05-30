@@ -194,7 +194,6 @@ class VoiceTyper:
                 self._model = WhisperModel(model_path, device="cpu", compute_type="int8")
             else:
                 log.info(f"Whisper 모델 로드 시작: {self._model_name} / device=cpu (faster-whisper)")
-                log.info("※ 첫 실행 시 HuggingFace에서 모델 다운로드 (~460MB) — 완료까지 기다려 주세요")
                 self._model = WhisperModel(self._model_name, device="cpu", compute_type="int8")
             log.info("Whisper 모델 로드 완료")
 
@@ -210,7 +209,6 @@ class VoiceTyper:
             condition_on_previous_text=False,
             temperature=0,
             no_speech_threshold=0.6,
-            initial_prompt="한국어로 말하는 음성 명령입니다. 날씨, 검색, 앱 실행, 파일, 볼륨, 창 전환 등의 명령어가 포함됩니다.",
             beam_size=5,
             vad_filter=True,   # 무음 구간 자동 제거 → 추론 속도 향상
         )
