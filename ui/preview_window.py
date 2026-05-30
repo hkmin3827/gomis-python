@@ -3,6 +3,7 @@ import numpy as np
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QImage, QPixmap
+from ui.icon_helper import app_icon
 
 
 class PreviewWindow(QWidget):
@@ -14,7 +15,8 @@ class PreviewWindow(QWidget):
         self._runner = engine_runner
         self._debug  = False
 
-        self.setWindowTitle("Gomis Motion Control")
+        self.setWindowTitle("GOMIS")
+        self.setWindowIcon(app_icon())
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.resize(640, 520)
 

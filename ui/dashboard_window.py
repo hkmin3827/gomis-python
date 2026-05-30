@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl, pyqtSignal
 from resource_path import resource_path
+from ui.icon_helper import app_icon
 
 
 class DashboardWindow(QMainWindow):
@@ -11,7 +12,8 @@ class DashboardWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gomis — Motion Control Dashboard")
+        self.setWindowTitle("GOMIS")
+        self.setWindowIcon(app_icon())
 
         # 화면 크기의 70% 비율로 창 크기 결정 — 해상도 무관하게 일정 비율 유지
         screen = QApplication.primaryScreen().availableGeometry()

@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl, Qt, pyqtSignal
 from resource_path import resource_path
+from ui.icon_helper import app_icon
 
 
 class GomisDashboard(QMainWindow):
@@ -12,7 +13,8 @@ class GomisDashboard(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gomis")
+        self.setWindowTitle("GOMIS")
+        self.setWindowIcon(app_icon())
         self.resize(560, 660)
         self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
         self.setStyleSheet("background: #010108;")

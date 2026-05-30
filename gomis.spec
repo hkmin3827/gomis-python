@@ -12,6 +12,8 @@ a = Analysis(
     pathex=[str(ROOT)],
     binaries=[],
     datas=[
+        # 앱 로고 (아이콘)
+        (str(ROOT / 'assets' / 'app-logo.png'), 'assets'),
         # MediaPipe 손 인식 모델
         (str(ROOT / 'core' / 'hand_landmarker.task'), 'core'),
         # 설정 파일
@@ -116,7 +118,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,          # 아이콘 파일 있으면 경로 지정
+    icon=str(ROOT / 'assets' / 'app-logo.ico'),
 )
 
 coll = COLLECT(

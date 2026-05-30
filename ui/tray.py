@@ -1,9 +1,6 @@
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction, QApplication
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction
 from PyQt5.QtCore import QObject, pyqtSignal
-from pathlib import Path
-
-ICON_PATH = Path(__file__).parent.parent / "config" / "icon.png"
+from ui.icon_helper import app_icon
 
 
 class TrayIcon(QObject):
@@ -15,10 +12,8 @@ class TrayIcon(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        icon = QIcon(str(ICON_PATH)) if ICON_PATH.exists() else QApplication.style().standardIcon(65)
-
-        self._tray = QSystemTrayIcon(icon, parent)
-        self._tray.setToolTip("Gomis Motion Control")
+        self._tray = QSystemTrayIcon(app_icon(), parent)
+        self._tray.setToolTip("GOMIS")
 
         menu = QMenu()
 

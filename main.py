@@ -19,16 +19,45 @@ os.environ["GLOG_minloglevel"] = "2"
 # Qt DPI 자동 스케일링 — Windows 화면 배율 반영해 브라우저와 동일한 폰트 크기로 렌더링
 os.environ.setdefault("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
-# ctranslate2(faster-whisper 엔진)가 내부적으로 torch를 import함.
-# Qt 초기화 후 torch가 로드되면 Qt가 변경한 DLL 경로와 충돌 → c10.dll WinError 1114 발생.
-# Qt보다 먼저 torch를 로드해 DLL을 선점해야 함.
+# 이 앱은 faster-whisper를 device="cpu"로만 사용 → torch 불필요.
+# ctranslate2가 선택적으로 torch를 탐지할 때 실제 torch DLL(libiomp5md 포함)이
+# 로드되지 않도록 sys.modules에 최소 stub을 먼저 등록한다.
+# 효과: libiomp5md 중복 로드(WinError 1114) 원천 차단, KMP 플래그 불필요.
+import types as _types
+
+_torch_stub = _types.ModuleType('torch')
+_torch_nn_stub = _types.ModuleType('torch.nn')
+for _attr, _val in {
+    '__version__': '0.0.0',
+    '__spec__': None,
+    'cuda': _types.SimpleNamespace(
+        is_available=lambda: False,
+        device_count=lambda: 0,
+        current_device=lambda: 0,
+    ),
+    'Tensor': object,
+    'float16': 'float16',
+    'float32': 'float32',
+    'int8': 'int8',
+    'device': lambda *_: 'cpu',
+    'nn': _torch_nn_stub,
+}.items():
+    setattr(_torch_stub, _attr, _val)
+setattr(_torch_nn_stub, 'Module', object)
+sys.modules.setdefault('torch', _torch_stub)
+sys.modules.setdefault('torch.nn', _torch_nn_stub)
+
 if getattr(sys, 'frozen', False):
-    _torch_lib = os.path.join(getattr(sys, '_MEIPASS', ''), 'torch', 'lib')
-    if os.path.isdir(_torch_lib):
-        _torch_dll_dir = os.add_dll_directory(_torch_lib)  # noqa: F841
-        os.environ['PATH'] = _torch_lib + os.pathsep + os.environ.get('PATH', '')
+    _meipass = getattr(sys, '_MEIPASS', '')
+    _ct2_dll = os.path.join(_meipass, 'ctranslate2')
+    if os.path.isdir(_ct2_dll):
+        try:
+            _dll_handle = os.add_dll_directory(_ct2_dll)  # noqa: F841 — GC 방지
+            os.environ['PATH'] = _ct2_dll + os.pathsep + os.environ.get('PATH', '')
+        except Exception:
+            pass
 try:
-    import torch  # noqa: F401
+    import ctranslate2  # noqa: F401 — Qt 초기화 전 ctranslate2 DLL 선점
 except Exception:
     pass
 
@@ -154,6 +183,10 @@ def main():
     QApplication.setAttribute(Qt.ApplicationAttribute(4))  # AA_ShareOpenGLContexts
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # 창 닫아도 트레이에 유지
+    app.setApplicationName("GOMIS")
+
+    from ui.icon_helper import app_icon
+    app.setWindowIcon(app_icon())  # 작업표시줄 아이콘
 
     config    = load_config()
     features  = config["features"]
@@ -273,7 +306,7 @@ def main():
             lock_state["locked"] = not lock_state["locked"]
             if lock_state["locked"]:
                 gomis_dash.set_state("locked")
-                tray.notify("Gomis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
+                fy("Gomis 🔒", "잠금 모드 ON — 양손 엄지 Up 1.5초로 해제")
             else:
                 gomis_dash.set_state("idle")
                 tray.notify("Gomis 🔓", "잠금 모드 OFF")
@@ -350,14 +383,12 @@ def main():
                     if not result.ok:
                         # ── 에러 타입별 처리 ────────────────────────────
                         if result.error_type == NOT_INSTALLED:
-                            tray.notify("Gomis ❌", "Claude CLI 미설치 — 설치 안내를 확인하세요")
                             gomis_dash.show_error_dialog(
                                 "Claude CLI 설치 필요",
                                 "Claude CLI가 설치되어 있지 않습니다.",
                                 result.detail,
                             )
                         elif result.error_type == NOT_AUTHENTICATED:
-                            tray.notify("Gomis ⚠️", "Claude 회원 연결이 필요합니다")
                             gomis_dash.show_error_dialog(
                                 "Claude 로그인 필요",
                                 "Claude CLI에 로그인되어 있지 않습니다.\n"
@@ -458,7 +489,6 @@ def main():
         if app_state.get("show_tray"):
             app_state["show_tray"] = False
             tray.show()
-            tray.notify("Gomis 실행 중", "트레이 아이콘으로 관리합니다.")
         if app_state.get("hide_tray"):
             app_state["hide_tray"] = False
             tray.hide()
