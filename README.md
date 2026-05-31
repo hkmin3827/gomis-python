@@ -209,14 +209,20 @@ gomis-prj/
 
 ## 변경 이력
 
-### 2026-05-30 — 배포 빌드 크래시 해결(MSVCP140) + 코드 품질·시작 시간 최적화
+### 2026-05-30 — 음성 기능 빌드/실행 크래시 전면 해결 (DLL·번들 누락) + 코드 품질
+
+> faster-whisper 도입 후 음성·Claude 기능이 빌드 exe와 개발환경에서 연쇄적으로 깨졌다.
+> 한 단계를 고치면 다음 단계가 드러나는 구조라, 원인별로 모두 정리한다. (자세한 과정은 개발 블로그의 트러블슈팅 #27~#29 참고)
 
 | 항목 | 내용 |
 |------|------|
-| **MSVCP140 DLL 충돌 해결 (근본 원인)** | exe 실행 시 faster-whisper 모델 로드 직후 액세스 위반(`0xC0000005`)으로 무음 크래시 → 원인은 PyQt5가 번들한 **구버전 VC 런타임(MSVCP140.dll 14.26)** 이 Qt 시작 시 상주해 ctranslate2의 최신 심볼 호출과 충돌. `gomis.spec`에서 번들 내 모든 VC 런타임을 시스템 최신(14.44)으로 통일해 근본 해결 |
-| **torch stub 제거 / KMP 플래그 복원** | 앞서 도입한 torch stub은 실제 원인(MSVCP140)이 아니었고, `noisereduce`가 `torch.nn.functional`을 실제로 요구해 stub과 호환 불가. 실제 torch를 그대로 사용하고 OpenMP 중복 로드(libiomp5md) 안전장치로 `KMP_DUPLICATE_LIB_OK=TRUE` 복원 |
-| **ctranslate2 lazy 로드** | 앱 시작 시 선제 import 제거 → VoiceTyper 첫 사용 시점에 lazy 로드. 비음성 세션에서 추가 시작 지연 없음 |
-| **앱 아이콘 통일** | `ui/icon_helper.py` 신규 생성 — 모든 창(트레이, 미리보기, 대시보드)에 동일 아이콘 적용. PNG 미존재 시 시스템 기본 아이콘 fallback |
+| **① 빌드 exe 무음 크래시 — MSVCP140 버전 충돌** | exe가 faster-whisper 모델 로드 직후 액세스 위반(`0xC0000005`)으로 메시지 없이 종료. 원인은 PyQt5가 번들한 **구버전 VC 런타임(MSVCP140.dll 14.26)** 이 Qt 시작 시 상주해 ctranslate2의 최신(14.44) 심볼 호출과 충돌. `gomis.spec`에서 번들 내 모든 VC 런타임을 시스템 최신으로 통일해 해결 |
+| **② transcribe 단계 모듈/데이터 누락 — scipy · silero VAD** | `noisereduce`가 요구하는 `scipy.signal`이 spec `excludes`에 묶여 빠지고, faster-whisper의 `vad_filter`가 쓰는 `silero_vad_v6.onnx`가 미수집돼 음성 인식이 깨짐. excludes에서 scipy 제거 + onnx를 `datas`로 번들에 포함 |
+| **③ dev 환경 torch `c10.dll` WinError 1114** | torch stub(가짜 모듈)은 `noisereduce`가 실제 `torch.nn.functional`을 요구해 폐기. 실제 torch를 쓰되, 백그라운드 스레드의 torch 로드가 메인 스레드의 Qt·MediaPipe 로드와 **동시 초기화 경쟁**을 일으켜 `c10.dll`이 깨짐 → **torch를 `main.py` 최상단(메인 스레드)에서 선로드**해 경쟁 제거. OpenMP 안전장치로 `KMP_DUPLICATE_LIB_OK=TRUE` 복원 |
+| **④ 빌드 `import torch` 누락 — 필수 서브모듈 제외** | ③ 적용 후 빌드에서 `No module named 'torch.cuda'`. `import torch`가 필수로 로드하는 서브모듈(cuda·distributed·testing·ao·fx.experimental·quantization·profiler)을 spec `excludes`가 용량 절감차 빼고 있었음(이전 빌드는 torch import 실패가 noisereduce의 try/except에 묻혀 우연히 작동). 전수 확인해 제외 해제, 진짜 미사용분(`torch._inductor`·`torch.onnx`·`torchaudio`·`tensorboard`)만 유지 |
+| **⑤ Claude 호출 시 콘솔 창 깜빡임** | windowed exe가 `claude` CLI(Node)를 subprocess로 띄울 때 콘솔 창이 깜빡임 → `subprocess.run`에 `CREATE_NO_WINDOW` 플래그 추가 |
+| **트레이 메뉴 폰트 축소** | 우클릭 메뉴 폰트를 시스템 기본(~9pt)에서 8pt로 명시 설정 |
+| **앱 아이콘 통일** | `ui/icon_helper.py` 신규 — 모든 창(트레이·미리보기·대시보드)에 동일 아이콘 적용. PNG 미존재 시 시스템 기본 아이콘 fallback |
 | **아이콘 캐시 안전성** | `weakref` 기반 QApplication 인스턴스 추적 — QApplication 재생성 시 stale QIcon 자동 무효화 |
 | **settings.json git 분리** | 개인 설정을 git에서 분리 (`git rm --cached`). `config/settings.example.json` 추가 (기본값 템플릿) |
 
